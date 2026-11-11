@@ -1,138 +1,219 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import PageHeader from '@/components/common/PageHeader';
 import Button from '@/components/common/Button';
-import Loading from '@/components/common/Loading';
+import StudyHeader from '@/components/study/StudyHeader';
+import { AiAlertModal, AiLoadingScreen, AiRetryScreen } from '@/components/study/AiStatus';
+import { CloseCircleIcon, PlusIcon, SparkleIcon } from '@/components/study/StudyIcons';
 import useApi from '@/hooks/useApi';
 import { getTree } from '@/apis/tree';
 import { createStudy } from '@/apis/study';
-import { isInProgressError } from '@/apis/client';
 import { ROUTES } from '@/constants/routes';
-import { INPUT_TYPE } from '@/constants/study';
+import { INPUT_TYPE, MAX_LEAVES } from '@/constants/study';
 import { ERROR_MESSAGES, getErrorMessage } from '@/constants/messages';
+import { AI_ERROR_KIND, aiErrorKind } from '@/constants/aiError';
 
-// 공부 입력 (S1): 노트 사진(+메모) 또는 텍스트 → AI 7문제 출제
+const MAX_IMAGES = 5;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+// 아이폰 사진(heic)은 accept 에 heic 를 안 넣으면 브라우저가 JPEG 로 바꿔서 올려줘요 (팀장님 공지)
+const ACCEPT = 'image/jpeg,image/png,image/webp';
+const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const MIN_CONTENT = 20;
+const MAX_CONTENT = 5000;
+const MAX_MEMO = 200;
+
+/**
+ * 공부 입력 (S1, 피그마 「디자인」 숲_공부 내용 입력 / _입력 완료) → 로딩화면 → 문제 풀기
+ * 입력 칸은 하나: 사진이 없으면 칸 내용이 content(TEXT, 20~5,000자), 사진이 있으면 memo(IMAGE, 200자까지)
+ * 실패하면 ① 다시 시도 → 로딩 실패 화면 / ② 입력 고치기 · ③ 안내 → 이 화면 위 팝업. 입력은 그대로 남아요.
+ */
 export default function MaterialInputPage() {
   const { treeId } = useParams();
   const navigate = useNavigate();
-  const { data: tree } = useApi(() => getTree(treeId), [treeId]);
+  const { data: tree, error: treeError } = useApi(() => getTree(treeId), [treeId]);
 
-  const [inputType, setInputType] = useState(INPUT_TYPE.IMAGE);
   const [photos, setPhotos] = useState([]);
-  const [memo, setMemo] = useState('');
-  const [content, setContent] = useState('');
-  const [error, setError] = useState('');
-  const [generating, setGenerating] = useState(false);
-
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState('input'); // input | loading | retry
+  const [error, setError] = useState(null);
+  const [alert, setAlert] = useState(null); // { message, error }
+  const [viewing, setViewing] = useState(null); // 크게 보는 사진 번호
+  const fileRef = useRef(null);
+  const sending = useRef(false);
   const previews = usePreviews(photos);
-  const hasMaterial = inputType === INPUT_TYPE.IMAGE ? photos.length > 0 : content.trim().length > 0;
 
-  const handleGenerate = async () => {
-    if (generating) return;
-    if (!hasMaterial) {
-      setError(ERROR_MESSAGES.STUDY_INPUT_EMPTY);
+  useEffect(() => {
+    if (treeError?.code === 'TREE_NOT_FOUND') navigate(ROUTES.FOREST, { replace: true });
+  }, [treeError, navigate]);
+
+  useEffect(() => {
+    if (viewing === null) return;
+    const onKey = (e) => e.key === 'Escape' && setViewing(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewing]);
+
+  const addPhotos = (fileList) => {
+    const picked = Array.from(fileList ?? []);
+    const bad = picked.find((f) => (f.type && !OK_TYPES.includes(f.type)) || f.size > MAX_IMAGE_BYTES);
+    if (bad) {
+      setAlert({ message: ERROR_MESSAGES.IMAGE_INVALID });
       return;
     }
-    setError('');
-    setGenerating(true);
+    setPhotos((prev) => [...prev, ...picked].slice(0, MAX_IMAGES));
+  };
+
+  const hasPhoto = photos.length > 0;
+  const length = text.trim().length;
+  const memoTooLong = hasPhoto && length > MAX_MEMO;
+  const canSubmit = (hasPhoto || length > 0) && !memoTooLong;
+
+  const handleSubmit = async () => {
+    if (!canSubmit || sending.current) return;
+    if ((tree?.leafCount ?? 0) >= MAX_LEAVES) {
+      setAlert({ message: ERROR_MESSAGES.TREE_FULL });
+      return;
+    }
+    if (!hasPhoto && length < MIN_CONTENT) {
+      setAlert({ message: ERROR_MESSAGES.CONTENT_TOO_SHORT });
+      return;
+    }
+    sending.current = true;
+    setPhase('loading');
     try {
       const quizSet = await createStudy(treeId, {
-        inputType,
-        content: inputType === INPUT_TYPE.TEXT ? content.trim() : undefined,
-        memo: inputType === INPUT_TYPE.IMAGE ? memo.trim() : undefined,
-        images: inputType === INPUT_TYPE.IMAGE ? photos : [],
+        inputType: hasPhoto ? INPUT_TYPE.IMAGE : INPUT_TYPE.TEXT,
+        content: hasPhoto ? undefined : text.trim(),
+        memo: hasPhoto ? text.trim() || undefined : undefined,
+        images: photos,
       });
       navigate(ROUTES.QUIZ(quizSet.quizSetId), {
         replace: true,
         state: { quizSet, context: { treeId: Number(treeId), subjectName: tree?.subjectName } },
       });
     } catch (err) {
-      if (!isInProgressError(err)) setError(getErrorMessage(err));
-      setGenerating(false);
+      const kind = aiErrorKind(err);
+      if (err.code === 'TREE_NOT_FOUND') return navigate(ROUTES.FOREST, { replace: true });
+      if (kind === AI_ERROR_KIND.IGNORE) return setPhase('input');
+      setError(err);
+      if (kind === AI_ERROR_KIND.RETRY) return setPhase('retry');
+      setPhase('input');
+      setAlert({ message: getErrorMessage(err), error: err });
+    } finally {
+      sending.current = false;
     }
   };
 
-  return (
-    <section className="flex flex-1 flex-col pb-8">
-      <PageHeader title="오늘 공부한 내용" subtitle={tree ? `${tree.subjectName} 나무` : undefined} />
+  if (phase === 'loading') return <AiLoadingScreen message="AI가 공부한 내용을 읽고 있어요" />;
+  if (phase === 'retry') return <AiRetryScreen error={error} onRetry={handleSubmit} onClose={() => setPhase('input')} />;
 
-      <div className="flex flex-1 flex-col gap-4 px-4 pt-4">
-        <div className="flex rounded-xl bg-info p-1">
-          {[
-            { value: INPUT_TYPE.IMAGE, label: '노트 사진' },
-            { value: INPUT_TYPE.TEXT, label: '텍스트' },
-          ].map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => {
-                setInputType(tab.value);
-                setError('');
-              }}
-              className={`h-10 flex-1 rounded-lg text-sm font-medium ${
-                inputType === tab.value ? 'bg-surface text-ink shadow-sm' : 'text-ink-3'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+  return (
+    <section className="flex flex-1 flex-col bg-subtle">
+      <StudyHeader overline={tree ? `${tree.subjectName}나무` : ''} title="오늘 공부한 내용" />
+
+      <div className="flex flex-1 flex-col gap-6 px-4 py-6">
+        <div className="flex flex-col gap-3">
+          <p className="text-base font-semibold text-ink-2">노트 사진</p>
+          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4">
+            {previews.map((src, i) => (
+              <div key={src} className="relative h-[210px] w-[169px] shrink-0 overflow-hidden rounded-2xl border-[1.5px] border-line">
+                <button type="button" onClick={() => setViewing(i)} aria-label={`노트 사진 ${i + 1} 크게 보기`} className="absolute inset-0">
+                  <img src={src} alt="" className="size-full object-cover" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                  aria-label="사진 빼기"
+                  className="absolute top-2 right-3"
+                >
+                  <CloseCircleIcon />
+                </button>
+              </div>
+            ))}
+            {photos.length < MAX_IMAGES && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex h-[210px] w-[169px] shrink-0 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-line"
+              >
+                <PlusIcon />
+                <span className="text-sm font-semibold text-ink-3">사진 추가</span>
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept={ACCEPT}
+            multiple
+            hidden
+            onChange={(e) => {
+              addPhotos(e.target.files);
+              e.target.value = '';
+            }}
+          />
         </div>
 
-        {inputType === INPUT_TYPE.IMAGE ? (
-          <>
-            <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-line bg-surface p-3 text-ink-3">
-              {previews.length ? (
-                <div className="grid w-full grid-cols-3 gap-2">
-                  {previews.map((src) => (
-                    <img key={src} src={src} alt="" className="aspect-square w-full rounded-lg object-cover" />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <span className="text-3xl leading-none font-extralight">+</span>
-                  <span className="text-sm">노트 사진을 올려주세요</span>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                onChange={(e) => {
-                  setPhotos(Array.from(e.target.files ?? []));
-                  setError('');
-                }}
-              />
-            </label>
-            <textarea
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="메모 (선택) 예: 이차함수 꼭짓점, 판별식"
-              className="h-24 resize-none rounded-xl border border-line bg-surface p-4 text-sm outline-none placeholder:text-ink-4 focus:border-primary"
-            />
-          </>
-        ) : (
+        <label className="flex flex-col gap-3">
+          <span className="text-base font-semibold text-ink-2">메모</span>
           <textarea
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              setError('');
-            }}
-            placeholder="오늘 공부한 내용을 적어주세요"
-            className="min-h-64 flex-1 resize-none rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed outline-none placeholder:text-ink-4 focus:border-primary"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={MAX_CONTENT}
+            placeholder="메모를 입력하세요."
+            className={`h-[88px] resize-none rounded-xl border bg-surface p-4 text-sm leading-[1.4] text-ink-2 outline-none placeholder:text-ink-4 focus:border-primary ${
+              text ? 'border-info' : 'border-line'
+            }`}
           />
-        )}
+          {memoTooLong && (
+            <span className="text-xs text-danger">
+              사진이 있을 땐 메모를 {MAX_MEMO}자까지 쓸 수 있어요 ({length}/{MAX_MEMO})
+            </span>
+          )}
+        </label>
 
-        {error && <p className="px-1 text-sm text-danger">{error}</p>}
-
-        <div className="mt-auto pt-4">
-          <Button onClick={handleGenerate} disabled={generating}>
-            AI 문제 만들기
-          </Button>
+        <div className="flex items-center gap-1 rounded-xl bg-info p-4 text-sm leading-[1.4] text-ink-2">
+          <SparkleIcon />
+          <span>AI가 노트를 읽고 쉬움부터 어려움까지 7문제를 만들어요.</span>
         </div>
       </div>
 
-      {generating && <Loading fullScreen message={'AI가 7문제를 만들고 있어요\n최대 1분 정도 걸릴 수 있어요'} />}
+      <div className="sticky bottom-0 bg-subtle px-4 pt-3 pb-[calc(24px+env(safe-area-inset-bottom))]">
+        <Button onClick={handleSubmit} disabled={!canSubmit}>
+          퀴즈 풀기
+        </Button>
+      </div>
+
+      <AiAlertModal message={alert?.message} error={alert?.error} onClose={() => setAlert(null)} />
+
+      {viewing !== null && previews[viewing] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="노트 사진 크게 보기"
+          onClick={() => setViewing(null)}
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-black/90 px-4 pt-[calc(56px+env(safe-area-inset-top))] pb-[calc(32px+env(safe-area-inset-bottom))]"
+        >
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => setViewing(null)}
+            className="absolute top-[calc(12px+env(safe-area-inset-top))] right-3 size-10 rounded-full bg-white/15 text-lg text-white"
+          >
+            ✕
+          </button>
+          <img
+            src={previews[viewing]}
+            alt={`노트 사진 ${viewing + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-full max-w-full rounded-lg bg-white object-contain"
+          />
+          {photos.length > 1 && (
+            <p className="text-[13px] text-white">
+              {viewing + 1} / {photos.length}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

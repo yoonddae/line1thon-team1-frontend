@@ -23,6 +23,14 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+// 서버 앞단(nginx)이 502·504 를 HTML 로 줄 때도 에러 종류를 구분할 수 있게 맞춰요.
+const fallbackCode = (status, axiosCode) => {
+  if (axiosCode === 'ECONNABORTED') return 'AI_TIMEOUT'; // 60초 초과
+  if (status === 504) return 'AI_TIMEOUT';
+  if (status === 502) return 'AI_SERVER_ERROR';
+  return 'NETWORK';
+};
+
 client.interceptors.response.use(
   (response) => response.data?.data ?? null,
   (error) => {
@@ -37,7 +45,7 @@ client.interceptors.response.use(
     return Promise.reject(
       new ApiError({
         status,
-        code: body?.error?.code ?? (error.code === 'ECONNABORTED' ? 'AI_TIMEOUT' : 'NETWORK'),
+        code: body?.error?.code ?? fallbackCode(status, error.code),
         message: body?.error?.message ?? error.message,
       }),
     );
