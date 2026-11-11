@@ -21,6 +21,13 @@ export const DEFAULT_BACKGROUND = 'BLUE';
 export const getBackground = (value) =>
   BACKGROUNDS.find((b) => b.value === value) ?? BACKGROUNDS.find((b) => b.value === DEFAULT_BACKGROUND);
 
+// 나무 모양 treeShape (해커톤은 BASIC 만 열려 있어요. 나머지는 "추가 예정")
+export const TREE_SHAPES = [
+  { value: 'BASIC', label: '기본 나무', available: true },
+  { value: 'GINKGO', label: '은행나무', available: false },
+  { value: 'MAPLE', label: '단풍나무', available: false },
+];
+
 export const FREE_TREE_LIMIT = 3;
 export const MAX_LEAVES = 24;
 export const BRANCH_SIZES = [5, 7, 7, 5]; // 왼쪽 가지부터. position 1~5, 6~12, 13~19, 20~24
