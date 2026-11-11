@@ -1,7 +1,8 @@
 // 모든 경로는 여기서 관리합니다. 동적 경로는 함수로 써요. 예: navigate(ROUTES.TREE(treeId))
 export const ROUTES = {
-  // 시작하기 (로그인 / 가입)
+  // 스플래시 → 시작하기 (로그인 / 가입)
   START: '/',
+  LOGIN: '/login',
   SIGNUP: '/signup',
 
   // 하단 탭

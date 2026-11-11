@@ -31,7 +31,7 @@ export default function ReviewPage() {
             <p className="text-sm text-ink-2">다음 복습: {formatMonthDay(data.nextReviewAt)}</p>
           )}
           <p className="mt-4 text-sm leading-relaxed text-ink-3">
-            단풍잎·마른 잎이 생기고 3일이 지나면
+            잎이 생기고 3일이 지나면
             <br />
             복습 문제가 이곳에 나타나요.
           </p>

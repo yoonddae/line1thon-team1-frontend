@@ -49,7 +49,7 @@ export default function MyPage() {
 
   const leave = () => {
     clearToken();
-    navigate(ROUTES.START, { replace: true });
+    navigate(ROUTES.LOGIN, { replace: true });
   };
 
   const handleLogout = async () => {
@@ -106,10 +106,6 @@ export default function MyPage() {
             </button>
           </li>
         </ul>
-
-        <p className="px-1 text-xs leading-relaxed text-ink-4">
-          닉네임과 로그인용 비밀번호로 이용해요. 공부 자료(사진·텍스트), 문제, 답안이 저장돼요.
-        </p>
       </div>
 
       <Modal open={withdrawOpen} onClose={() => setWithdrawOpen(false)}>

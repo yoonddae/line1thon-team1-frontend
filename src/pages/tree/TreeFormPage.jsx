@@ -51,7 +51,7 @@ export default function TreeFormPage() {
     try {
       const values = { subjectName: subjectName.trim(), studyLevel, backgroundColor };
       if (isEdit) {
-        await updateTree(treeId, values);
+        await updateTree(treeId, { subjectName: values.subjectName, studyLevel });
         navigate(ROUTES.TREE(treeId), { replace: true });
       } else {
         const created = await createTree(values);
@@ -103,33 +103,36 @@ export default function TreeFormPage() {
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend className="mb-3 text-base font-semibold text-ink-2">배경 색상</legend>
-          <div className="flex gap-3">
-            {BACKGROUNDS.map((bg) => {
-              const selected = backgroundColor === bg.value;
-              return (
-                <button
-                  key={bg.value}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setBackgroundColor(bg.value)}
-                  className="flex flex-col items-center gap-1 text-xs text-ink-3"
-                >
-                  <span
-                    className={`size-11 rounded-full border-2 ${selected ? 'border-primary' : 'border-white'}`}
-                    style={{ background: `linear-gradient(180deg, ${bg.from}, #fff)` }}
-                  />
-                  {bg.label}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+        {/* 최종 시안: 배경 색상은 나무 만들기에만 있고 수정(#16)에는 없어요 */}
+        {!isEdit && (
+          <fieldset>
+            <legend className="mb-3 text-base font-semibold text-ink-2">배경 색상</legend>
+            <div className="flex gap-3">
+              {BACKGROUNDS.map((bg) => {
+                const selected = backgroundColor === bg.value;
+                return (
+                  <button
+                    key={bg.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setBackgroundColor(bg.value)}
+                    className="flex flex-col items-center gap-1 text-xs text-ink-3"
+                  >
+                    <span
+                      className={`size-11 rounded-full border-2 ${selected ? 'border-primary' : 'border-white'}`}
+                      style={{ background: `linear-gradient(180deg, ${bg.from}, #fff)` }}
+                    />
+                    {bg.label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
         <InfoBox>
           {isEdit
-            ? '과목 이름 수정은 이름 고치기용이에요. 다른 과목은 새 나무를 만들어 주세요. 바뀐 값은 새로 입력하는 공부부터 적용돼요.'
+            ? '한 나무에는 하나의 과목만 지정해 주세요. 여러 과목이 중복될 경우 출제와 관리가 어려우니 수정 및 등록 시 주의해 주시기 바랍니다.'
             : '한 나무에는 하나의 과목만 지정해 주세요. 여러 과목이 섞이면 출제와 관리가 어려워요.'}
         </InfoBox>
       </div>

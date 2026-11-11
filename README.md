@@ -33,7 +33,7 @@ src/
 ├── assets/images/   # logo.svg, tree-base.svg (피그마 시안에서 추출)
 ├── components/
 │   ├── common/      # Button, TextField, Modal, InfoBox, PageHeader, Leaf, AdScreen, Icons ...
-│   ├── layout/      # Layout(모바일 폭), TabLayout(하단 탭 숲·복습·내 정보)
+│   ├── layout/      # Layout(모바일 폭), TabLayout(하단 탭 숲·복습·정보)
 │   └── tree/        # TreeView(잎 24자리 배치), treeSlots.js(잎 자리 좌표)
 ├── constants/       # routes, study(enum·잎 등급·색), messages(에러 코드별 문구)
 ├── hooks/           # useApi(조회 API 로딩/에러 처리)
@@ -67,18 +67,19 @@ src/
 
 | 경로 | 화면 | API |
 | --- | --- | --- |
-| `/` | 시작하기 - 로그인 | U2 |
+| `/` | 스플래시 | - |
+| `/login` | 시작하기 - 로그인 | U2 |
 | `/signup` | 시작하기 - 가입 | U1 |
 | `/forest` | 숲 (탭) | T1, T3, 이어 풀기 S4 |
 | `/review` | 복습 (탭) | R0 → R2 |
-| `/my` | 내 정보 (탭) | U3, U4, U5, U6 |
+| `/my` | 정보 (탭) | U3, U4, U5, U6 |
 | `/trees/new` | 나무 만들기 | T2 |
 | `/trees/:treeId` | 나무 (메뉴·삭제·복습 시트) | T3, T5, R1 → R2 |
 | `/trees/:treeId/edit` | 나무 수정 | T4 |
-| `/trees/:treeId/branches/:branchIndex` | 가지 확대 | T3 |
+| `/trees/:treeId/branches/:branchIndex` | 가지 확대 · 잎 붙이기(채점 결과 모달) | T3, S3, A1 |
 | `/trees/:treeId/study` | 공부 입력 | S1 |
 | `/quiz/:quizSetId` | 문제 풀기 (첫 풀이·재도전·복습) | S4(새로고침 시), S2 |
-| `/quiz/:quizSetId/result` | 채점 결과 / 복습 결과 | S3, A1 |
+| `/quiz/:quizSetId/result` | 복습 결과 / 첫 풀이·재도전은 가지 확대로 이동 | T3 |
 | `/leaves/:leafId` | 잎 상세 (그날 기록) | L2, A1 |
 
 > S1~S4 요청·응답 형식은 [Swagger](https://api.30nezog.shop/swagger-ui/index.html) 기준으로 `src/apis/study.js` 주석에 정리했어요.

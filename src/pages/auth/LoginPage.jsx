@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import TextField from '@/components/common/TextField';
 import Button from '@/components/common/Button';
-import Logo from '@/components/common/Logo';
 import { ROUTES } from '@/constants/routes';
 import { login } from '@/apis/user';
 import { isLoggedIn, setToken } from '@/utils/auth';
 import { sanitizePassword } from '@/utils/validation';
 import { getErrorMessage } from '@/constants/messages';
 
-// 시작하기 - 로그인 (U2). 닉네임 + 비밀번호 칸만 있어요.
+// 시작하기 - 로그인 (U2, 시안 #2). 닉네임 + 비밀번호 칸만 있어요.
 export default function LoginPage() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
@@ -38,11 +37,8 @@ export default function LoginPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-1 flex-col px-4 pb-8">
-      <div className="flex h-16 items-center">
-        <Logo />
-      </div>
-      <div className="mt-6 flex flex-col gap-8">
+    <form onSubmit={handleSubmit} className="flex flex-1 flex-col px-4 pt-12 pb-8">
+      <div className="flex flex-col gap-8">
         <TextField
           label="닉네임"
           value={nickname}
