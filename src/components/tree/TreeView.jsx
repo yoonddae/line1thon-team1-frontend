@@ -33,14 +33,14 @@ const branchViewBox = (branchIndex) => {
  * - onLeafClick(leaf) 로 잎 선택, onBranchClick(index) 로 가지 선택
  * - newPosition: 방금 붙인 잎 자리. 그 잎이 자라나는 애니메이션을 보여줘요 (A8 잎 배치 완료)
  */
-export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBranchClick, newPosition, className = '' }) {
+export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBranchClick, newPosition, className = '', style }) {
   const uid = useId();
   const zoomed = branchIndex !== undefined;
   const [vx, vy, vw, vh] = zoomed ? branchViewBox(branchIndex) : TREE_VIEWBOX;
   const leafByPosition = Object.fromEntries(leaves.map((leaf) => [leaf.position, leaf]));
 
   return (
-    <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} className={className} role="img" aria-label="나무">
+    <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} className={className} style={style} role="img" aria-label="나무">
       <image href={treeBase} x={TREE_VIEWBOX[0]} y={TREE_VIEWBOX[1]} width={TREE_VIEWBOX[2]} height={TREE_VIEWBOX[3]} />
 
       {BRANCH_SLOTS.map((slots, b) => {

@@ -104,17 +104,20 @@ export default function ForestPage() {
             className="border-2 border-white"
             style={{ background: skyGradient(tree.backgroundColor) }}
           >
+            {/* 시안 숲 카드(300×440) 기준 위치(테두리 2px 안쪽). 나무는 시안과 같은 크기(원본의 0.698배) */}
+            <TreeView
+              leaves={details[tree.treeId]?.leaves}
+              className="absolute"
+              style={{ left: 19, top: 51, width: 258 }}
+            />
             {tree.reviewPendingCount > 0 && (
-              <span className="absolute top-[26px] right-[26px] rounded-full bg-danger px-3 py-1.5 text-xs font-medium text-white">
+              <span className="absolute top-6 right-6 flex h-[29px] items-center rounded-full bg-danger px-3 text-sm font-semibold text-white">
                 복습 {tree.reviewPendingCount}
               </span>
             )}
-            <div className="flex flex-1 items-end justify-center px-5 pt-14">
-              <TreeView leaves={details[tree.treeId]?.leaves} className="w-full" />
-            </div>
-            <div className="px-6 pt-3 pb-6">
-              <p className="text-2xl font-semibold text-ink">{tree.subjectName}</p>
-              <p className="mt-1 text-sm text-ink-3">
+            <div className="absolute bottom-[26px] left-6">
+              <p className="text-2xl leading-8 font-semibold text-ink">{tree.subjectName}</p>
+              <p className="mt-0.5 text-sm leading-5 text-ink-3">
                 잎 {tree.leafCount}개 · {formatRelativeDay(tree.lastStudiedAt)}
               </p>
             </div>
@@ -126,12 +129,14 @@ export default function ForestPage() {
           index={trees.length}
           activeIndex={activeIndex}
           onClick={() => handleCardClick(trees.length, handleAddTree)}
-          className="justify-end bg-surface p-6"
+          className="bg-surface"
         >
           <span className="absolute inset-0 flex items-center justify-center text-5xl font-extralight text-ink-2">+</span>
-          <span className="text-2xl font-semibold text-ink">나무 추가</span>
-          <span className="mt-1 text-sm text-ink-3">
-            무료 나무 {data?.treeCount ?? 0}/{data?.freeTreeLimit ?? 3}
+          <span className="absolute bottom-7 left-[26px] flex flex-col">
+            <span className="text-2xl leading-8 font-semibold text-ink">나무 추가</span>
+            <span className="mt-0.5 text-sm leading-5 text-ink-3">
+              무료 나무 {data?.treeCount ?? 0}/{data?.freeTreeLimit ?? 3}
+            </span>
           </span>
         </ForestCard>
       </div>
