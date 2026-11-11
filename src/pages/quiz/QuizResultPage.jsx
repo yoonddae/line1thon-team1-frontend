@@ -2,20 +2,18 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Button from '@/components/common/Button';
 import Leaf from '@/components/common/Leaf';
-import AdScreen from '@/components/common/AdScreen';
 import Loading from '@/components/common/Loading';
 import ReviewResult from './ReviewResult';
 import FeedbackBox, { BulletList } from '@/components/common/FeedbackBox';
-import { checkAd } from '@/apis/leaf';
 import { retryStudy } from '@/apis/study';
 import { isInProgressError } from '@/apis/client';
 import { ROUTES } from '@/constants/routes';
-import { AD_PLACEMENT, GRADE, GRADE_INFO, QUIZ_SET_TYPE } from '@/constants/study';
+import { GRADE, GRADE_INFO, QUIZ_SET_TYPE } from '@/constants/study';
 import { getErrorMessage } from '@/constants/messages';
 
-// 채점 결과 (S2 응답). 복습이면 복습 결과, 아니면 잎 결과 → 나무에 붙이기(A1 → 광고 → 나무)
+// 채점 결과 (S2 응답). 복습이면 복습 결과, 아니면 잎 결과 → 나무에 붙이기(A8 잎 배치 완료로 이동)
 // ⚠️ S2 응답 명세를 아직 받지 못해 아래 필드를 가정했어요:
-//    { correctCount, leafId, treeId, studyId, grade, feedback: { summary, strengths, weaknesses, essayFeedback }, nextReviewAt }
+//    { correctCount, leafId, position, treeId, studyId, grade, feedback: { summary, strengths, weaknesses, essayFeedback }, nextReviewAt }
 export default function QuizResultPage() {
   const { state } = useLocation();
   if (!state?.result) return <Navigate to={ROUTES.FOREST} replace />;
@@ -28,22 +26,19 @@ export default function QuizResultPage() {
 
 function LeafResult({ result, context }) {
   const navigate = useNavigate();
-  const [showAd, setShowAd] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const treeId = result.treeId ?? context.treeId;
   const grade = result.grade ?? GRADE.BUD;
   const info = GRADE_INFO[grade];
   const isBud = grade === GRADE.BUD;
-  const goToTree = () => navigate(ROUTES.TREE(treeId), { replace: true });
 
-  // 배치 팝업에서 닫기·다음을 누를 때 A1(LEAF_PLACEMENT)
-  const handlePlace = async () => {
-    setBusy(true);
-    const ad = await checkAd(AD_PLACEMENT.LEAF_PLACEMENT);
-    if (ad.showAd) setShowAd(true);
-    else goToTree();
-  };
+  // "나무에 붙이기" → A8 잎 배치 완료 (나무 화면에서 애니메이션 + 시트, 광고 확인은 시트에서)
+  const handlePlace = () =>
+    navigate(ROUTES.TREE(treeId), {
+      replace: true,
+      state: { placedLeaf: { leafId: result.leafId, position: result.position, grade } },
+    });
 
   // 잎눈 재도전 (S3 → 새 7문제)
   const handleRetry = async () => {
@@ -56,8 +51,6 @@ function LeafResult({ result, context }) {
       setBusy(false);
     }
   };
-
-  if (showAd) return <AdScreen onClose={goToTree} />;
 
   return (
     <section className="flex flex-1 flex-col px-4 pt-16 pb-8">

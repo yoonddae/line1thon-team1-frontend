@@ -28,7 +28,7 @@ export default function SignupPage() {
     try {
       const { accessToken } = await signup({ nickname: nickname.trim(), password });
       setToken(accessToken);
-      navigate(ROUTES.TREE_CREATE, { replace: true, state: { first: true } });
+      navigate(ROUTES.FOREST, { replace: true }); // A1 → A2 숲
     } catch (err) {
       const message = getErrorMessage(err);
       setErrors(err.code === 'PASSWORD_INVALID' ? { password: message } : { nickname: message });
