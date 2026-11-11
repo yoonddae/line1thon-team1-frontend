@@ -4,8 +4,9 @@ import client from './client';
 export const getTrees = () => client.get('/trees');
 
 // T2 나무 추가 { subjectName, studyLevel, treeShape, backgroundColor }
-export const createTree = ({ subjectName, studyLevel, backgroundColor }) =>
-  client.post('/trees', { subjectName, studyLevel, treeShape: 'BASIC', backgroundColor });
+// BASIC 이 아닌 모양은 TREE_SHAPE_LOCKED(403)
+export const createTree = ({ subjectName, studyLevel, treeShape = 'BASIC', backgroundColor }) =>
+  client.post('/trees', { subjectName, studyLevel, treeShape, backgroundColor });
 
 // T3 나무 상세 (잎 배치, 풀던 문제 pendingQuizSetId)
 export const getTree = (treeId) => client.get(`/trees/${treeId}`);

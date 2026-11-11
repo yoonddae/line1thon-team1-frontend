@@ -1,46 +1,56 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '@/components/common/PageHeader';
 import TextField from '@/components/common/TextField';
 import Button from '@/components/common/Button';
 import InfoBox from '@/components/common/InfoBox';
 import Loading from '@/components/common/Loading';
-import { createTree, getTree, updateTree } from '@/apis/tree';
+import TreeShapeIcon from '@/components/tree/TreeShapeIcon';
+import { createTree, getTree, getTrees, updateTree } from '@/apis/tree';
 import { ROUTES } from '@/constants/routes';
-import { BACKGROUNDS, DEFAULT_BACKGROUND, STUDY_LEVELS } from '@/constants/study';
-import { getErrorMessage } from '@/constants/messages';
+import { BACKGROUNDS, DEFAULT_BACKGROUND, STUDY_LEVELS, TREE_SHAPES } from '@/constants/study';
+import { MESSAGES, getErrorMessage } from '@/constants/messages';
 import { validateSubjectName } from '@/utils/validation';
 
-// 나무 만들기 (T2) / 나무 수정 (T4). URL 에 treeId 가 있으면 수정 화면이에요.
+/**
+ * 새 나무 심기 (T2, 시안 #21) / 나무 수정 (T4, 시안 #16). URL 에 treeId 가 있으면 수정 화면이에요.
+ * - 심기: 과목 이름 · 공부 수준 · 나무 모양 · 배경 색상 + 무료 나무 사용 현황(T1)
+ * - 수정: 과목 이름 · 공부 수준만 (나무 모양은 바꿀 수 없고, 배경 색상은 시안에 없어요)
+ */
 export default function TreeFormPage() {
   const { treeId } = useParams();
   const isEdit = Boolean(treeId);
   const navigate = useNavigate();
-  const { state } = useLocation();
 
   const [subjectName, setSubjectName] = useState('');
   const [studyLevel, setStudyLevel] = useState('');
+  const [treeShape, setTreeShape] = useState('BASIC');
   const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKGROUND);
+  const [forest, setForest] = useState(null); // T1: 무료 나무 사용 현황
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!isEdit) return;
-    getTree(treeId)
-      .then((tree) => {
-        setSubjectName(tree.subjectName);
-        setStudyLevel(tree.studyLevel);
-        setBackgroundColor(tree.backgroundColor ?? DEFAULT_BACKGROUND);
-      })
-      .catch((err) => setError(getErrorMessage(err)))
-      .finally(() => setLoading(false));
+    const request = isEdit
+      ? getTree(treeId).then((tree) => {
+          setSubjectName(tree.subjectName);
+          setStudyLevel(tree.studyLevel);
+        })
+      : getTrees().then(setForest);
+    request.catch((err) => setError(getErrorMessage(err))).finally(() => setLoading(false));
   }, [isEdit, treeId]);
 
+  // 무료 나무를 다 썼으면 "추가 나무 구매하고 심기" (결제는 추후 개발이라 안내만)
+  const isFull = !isEdit && forest && !forest.canAddFreeTree;
   const canSubmit = subjectName.trim() && studyLevel && !saving;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isFull) {
+      alert(MESSAGES.TREE_PURCHASE_SOON);
+      return;
+    }
     const message = validateSubjectName(subjectName);
     if (message) {
       setError(message);
@@ -49,12 +59,11 @@ export default function TreeFormPage() {
     setSaving(true);
     setError('');
     try {
-      const values = { subjectName: subjectName.trim(), studyLevel, backgroundColor };
       if (isEdit) {
-        await updateTree(treeId, { subjectName: values.subjectName, studyLevel });
+        await updateTree(treeId, { subjectName: subjectName.trim(), studyLevel });
         navigate(ROUTES.TREE(treeId), { replace: true });
       } else {
-        const created = await createTree(values);
+        const created = await createTree({ subjectName: subjectName.trim(), studyLevel, treeShape, backgroundColor });
         navigate(ROUTES.TREE(created.treeId), { replace: true });
       }
     } catch (err) {
@@ -67,11 +76,9 @@ export default function TreeFormPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-1 flex-col pb-8">
-      <PageHeader title={isEdit ? '나무 수정' : '나무 만들기'} showBack={!state?.first} />
+      <PageHeader title={isEdit ? '나무 수정' : '새 나무 심기'} />
 
       <div className="mt-6 flex flex-col gap-8 px-4">
-        {state?.first && <p className="text-base text-ink-2">첫 나무를 만들어 볼까요? 🌱</p>}
-
         <TextField
           label="과목 이름"
           value={subjectName}
@@ -81,8 +88,7 @@ export default function TreeFormPage() {
           error={error}
         />
 
-        <fieldset>
-          <legend className="mb-3 text-base font-semibold text-ink-2">공부 수준</legend>
+        <Field label="공부 수준">
           <div className="grid grid-cols-2 gap-2">
             {STUDY_LEVELS.map((level) => {
               const selected = studyLevel === level.value;
@@ -101,47 +107,103 @@ export default function TreeFormPage() {
               );
             })}
           </div>
-        </fieldset>
+        </Field>
 
-        {/* 최종 시안: 배경 색상은 나무 만들기에만 있고 수정(#16)에는 없어요 */}
         {!isEdit && (
-          <fieldset>
-            <legend className="mb-3 text-base font-semibold text-ink-2">배경 색상</legend>
-            <div className="flex gap-3">
-              {BACKGROUNDS.map((bg) => {
-                const selected = backgroundColor === bg.value;
-                return (
-                  <button
-                    key={bg.value}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setBackgroundColor(bg.value)}
-                    className="flex flex-col items-center gap-1 text-xs text-ink-3"
-                  >
-                    <span
-                      className={`size-11 rounded-full border-2 ${selected ? 'border-primary' : 'border-white'}`}
-                      style={{ background: `linear-gradient(180deg, ${bg.from}, #fff)` }}
-                    />
-                    {bg.label}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
+          <>
+            <Field label="나무 모양">
+              <div className="grid grid-cols-3 gap-2">
+                {TREE_SHAPES.map((shape) => {
+                  const selected = treeShape === shape.value;
+                  return (
+                    <button
+                      key={shape.value}
+                      type="button"
+                      aria-pressed={selected}
+                      disabled={!shape.available}
+                      onClick={() => setTreeShape(shape.value)}
+                      className={`flex h-[88px] flex-col items-center justify-center gap-2 rounded-xl text-sm ${
+                        selected
+                          ? 'border-[1.5px] border-primary bg-surface font-semibold text-ink'
+                          : 'bg-info text-ink-3'
+                      }`}
+                    >
+                      <TreeShapeIcon shape={shape.value} />
+                      {shape.available ? shape.label : '추가 예정'}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <Field label="배경 색상">
+              <div className="flex justify-between">
+                {BACKGROUNDS.map((bg) => {
+                  const selected = backgroundColor === bg.value;
+                  return (
+                    <button
+                      key={bg.value}
+                      type="button"
+                      aria-label={`${bg.label} 배경`}
+                      aria-pressed={selected}
+                      onClick={() => setBackgroundColor(bg.value)}
+                      className="relative size-16 rounded-xl"
+                      style={{ background: bg.from }}
+                    >
+                      {selected && (
+                        <span className="absolute top-1 right-1 flex size-[22px] items-center justify-center rounded-full bg-primary">
+                          <svg viewBox="0 0 12 10" className="h-2.5 w-3" aria-hidden>
+                            <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" fill="none" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            {forest && (
+              <div className="rounded-2xl bg-info p-4">
+                <p className="text-base font-semibold text-ink-2">
+                  무료 나무 {forest.treeCount} / {forest.freeTreeLimit} 사용 중
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink-3">
+                  {isFull ? (
+                    '무료 나무를 모두 심었어요.'
+                  ) : (
+                    <>무료 나무를 {forest.freeTreeLimit - forest.treeCount}그루 더 심을 수 있어요.</>
+                  )}
+                  <br />
+                  {forest.freeTreeLimit + 1}번째 나무부터는 유료로 심을 수 있어요.
+                </p>
+              </div>
+            )}
+          </>
         )}
 
-        <InfoBox>
-          {isEdit
-            ? '한 나무에는 하나의 과목만 지정해 주세요. 여러 과목이 중복될 경우 출제와 관리가 어려우니 수정 및 등록 시 주의해 주시기 바랍니다.'
-            : '한 나무에는 하나의 과목만 지정해 주세요. 여러 과목이 섞이면 출제와 관리가 어려워요.'}
-        </InfoBox>
+        {isEdit && (
+          <InfoBox>
+            한 나무에는 하나의 과목만 지정해 주세요. 여러 과목이 중복될 경우 출제와 관리가 어려우니 수정 및 등록
+            시 주의해 주시기 바랍니다.
+          </InfoBox>
+        )}
       </div>
 
       <div className="mt-auto px-4 pt-8">
-        <Button type="submit" disabled={!canSubmit}>
-          {isEdit ? '저장하기' : '나무 심기'}
+        <Button type="submit" disabled={isFull ? saving : !canSubmit}>
+          {isEdit ? '저장하기' : isFull ? '추가 나무 구매하고 심기' : '나무 심기'}
         </Button>
       </div>
     </form>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <fieldset>
+      <legend className="mb-3 text-base font-semibold text-ink-2">{label}</legend>
+      {children}
+    </fieldset>
   );
 }

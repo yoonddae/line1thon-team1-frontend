@@ -6,6 +6,7 @@ export const ERROR_MESSAGES = {
   LOGIN_FAILED: '닉네임 또는 비밀번호가 맞지 않아요',
   TREE_LIMIT_EXCEEDED: '무료 나무는 3그루까지예요',
   TREE_FULL: '이 나무에는 잎이 24개 모두 찼어요',
+  TREE_SHAPE_LOCKED: '아직 열리지 않은 나무 모양이에요',
   TREE_NOT_FOUND: '삭제된 나무예요',
   FORBIDDEN: '이 기록을 열 수 없어요',
   STUDY_INPUT_EMPTY: '공부한 내용을 먼저 입력해 주세요',
