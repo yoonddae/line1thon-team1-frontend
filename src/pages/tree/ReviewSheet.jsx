@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useApi from '@/hooks/useApi';
+import Loading from '@/components/common/Loading';
 import { getTreeReviews } from '@/apis/review';
 import ReviewItem from '@/pages/review/ReviewItem';
 import useStartReview from '@/pages/review/useStartReview';
@@ -40,6 +41,7 @@ export default function ReviewSheet({ treeId }) {
           ))}
         </ul>
       )}
+      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
     </div>
   );
 }

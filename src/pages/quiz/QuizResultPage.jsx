@@ -12,8 +12,7 @@ import { GRADE, GRADE_INFO, QUIZ_SET_TYPE } from '@/constants/study';
 import { getErrorMessage } from '@/constants/messages';
 
 // 채점 결과 (S2 응답). 복습이면 복습 결과, 아니면 잎 결과 → 나무에 붙이기(A8 잎 배치 완료로 이동)
-// ⚠️ S2 응답 명세를 아직 받지 못해 아래 필드를 가정했어요:
-//    { correctCount, leafId, position, treeId, studyId, grade, feedback: { summary, strengths, weaknesses, essayFeedback }, nextReviewAt }
+// S2 응답 형식은 src/apis/study.js 주석 참고
 export default function QuizResultPage() {
   const { state } = useLocation();
   if (!state?.result) return <Navigate to={ROUTES.FOREST} replace />;
@@ -28,8 +27,8 @@ function LeafResult({ result, context }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  const treeId = result.treeId ?? context.treeId;
-  const grade = result.grade ?? GRADE.BUD;
+  const treeId = context.treeId;
+  const grade = result.leaf?.grade ?? GRADE.BUD;
   const info = GRADE_INFO[grade];
   const isBud = grade === GRADE.BUD;
 
@@ -37,14 +36,14 @@ function LeafResult({ result, context }) {
   const handlePlace = () =>
     navigate(ROUTES.TREE(treeId), {
       replace: true,
-      state: { placedLeaf: { leafId: result.leafId, position: result.position, grade } },
+      state: { placedLeaf: { leafId: result.leaf?.leafId, grade } }, // position 은 나무 화면이 T3 에서 찾아요
     });
 
   // 잎눈 재도전 (S3 → 새 7문제)
   const handleRetry = async () => {
     setBusy(true);
     try {
-      const quizSet = await retryStudy(result.studyId);
+      const quizSet = await retryStudy(context.studyId);
       navigate(ROUTES.QUIZ(quizSet.quizSetId), { replace: true, state: { quizSet, context } });
     } catch (err) {
       if (!isInProgressError(err)) alert(getErrorMessage(err));

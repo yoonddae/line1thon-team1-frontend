@@ -81,7 +81,7 @@ src/
 | `/quiz/:quizSetId/result` | 채점 결과 / 복습 결과 | S3, A1 |
 | `/leaves/:leafId` | 잎 상세 (그날 기록) | L2, A1 |
 
-> ⚠️ S1~S4 상세 명세를 받기 전이라 요청·응답 필드를 가정했어요. `src/apis/study.js` 와 `QuizResultPage.jsx` 상단 주석을 확인해 주세요.
+> S1~S4 요청·응답 형식은 [Swagger](https://api.30nezog.shop/swagger-ui/index.html) 기준으로 `src/apis/study.js` 주석에 정리했어요.
 
 ## 협업 규칙
 

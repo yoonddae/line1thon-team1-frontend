@@ -84,9 +84,10 @@ export default function ReviewPage() {
       </div>
       <div className="sticky bottom-[72px] mt-auto bg-bg px-4 pt-4 pb-6">
         <Button onClick={() => startReview(reviews[0])} disabled={startingLeafId !== null}>
-          {startingLeafId !== null ? '복습 문제를 만들고 있어요...' : '처음부터 복습하기'}
+          처음부터 복습하기
         </Button>
       </div>
+      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
     </section>
   );
 }
