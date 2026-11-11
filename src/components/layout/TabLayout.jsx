@@ -5,10 +5,10 @@ import { BookIcon, PersonIcon, TreeIcon } from '@/components/common/Icons';
 const TABS = [
   { to: ROUTES.FOREST, label: '숲', Icon: TreeIcon },
   { to: ROUTES.REVIEW, label: '복습', Icon: BookIcon },
-  { to: ROUTES.MY, label: '내 정보', Icon: PersonIcon },
+  { to: ROUTES.MY, label: '정보', Icon: PersonIcon },
 ];
 
-// 하단 탭바가 있는 화면(숲·복습·내 정보)과 나무 화면용 레이아웃
+// 하단 탭바가 있는 화면(숲·복습·정보)과 나무 화면용 레이아웃
 export default function TabLayout() {
   return (
     <>

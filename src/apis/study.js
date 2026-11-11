@@ -1,11 +1,13 @@
 import client from './client';
 
-// ⚠️ S1~S4 상세 명세는 아직 받지 못했어요.
-// R2 응답이 "S1과 같은 형태"라는 설명을 바탕으로 아래처럼 가정했어요. 명세가 오면 이 파일만 고치면 됩니다.
-//   문제 세트 응답: { quizSetId, quizSetType, leafId?, studyId?, questions: [{ questionId, number, difficulty, questionType, topic, content, options }] }
+// S1~S4 형식은 Swagger(https://api.30nezog.shop/swagger-ui/index.html) 기준이에요.
+//
+// QuizSetResponse (S1·S3·S4 응답, R2 도 같은 형태)
+//   { studyId, quizSetId, quizSetType, treeId, subjectName, studyLevel,
+//     questions: [{ questionId, number, difficulty, questionType, topic, content, options }] }
 
 // S1 공부 입력 + 7문제 출제 (multipart/form-data)
-// 가정한 필드: inputType(IMAGE|TEXT), content(텍스트), memo, images(파일 여러 장)
+// inputType 필수. IMAGE: images 1~5장(장당 10MB) + memo 선택(200자). TEXT: content 20~5,000자
 export const createStudy = (treeId, { inputType, content, memo, images = [] }) => {
   const form = new FormData();
   form.append('inputType', inputType);
@@ -16,7 +18,12 @@ export const createStudy = (treeId, { inputType, content, memo, images = [] }) =
 };
 
 // S2 답 제출 + 채점 + 잎 생성·변경 (INITIAL·RETRY·REVIEW 공용)
-// 가정한 요청: { answers: [{ questionId, selectedIndex } | { questionId, essayAnswer }] }
+// 요청: { answers: [{ questionId, selectedIndex(0~3, 안 풀면 null) } | { questionId, essayText(1,000자) }] }
+// 응답 INITIAL·RETRY: { quizSetId, quizSetType, correctCount, gradedCount, leaf, feedback, results }
+// 응답 REVIEW: { quizSetId, quizSetType, correctCount, gradedCount, passed, leaf, recoveredTopics, summary, remainingReviewCount, results }
+//   leaf = { leafId, beforeGrade, grade, studiedAt, reviewAvailableAt }  ※ position 은 없어요 (T3 에서 leafId 로 찾기)
+//   feedback = { summary, strengths, weaknesses, essayFeedback }
+//   results[] = { questionId, number, topic, difficulty, questionType, selectedIndex, answerIndex, isCorrect, explanation, essayText, modelAnswer }
 export const submitAnswers = (quizSetId, answers) =>
   client.post(`/quiz-sets/${quizSetId}/answers`, { answers });
 

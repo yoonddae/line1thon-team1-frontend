@@ -31,8 +31,9 @@ const branchViewBox = (branchIndex) => {
  * 나무 + 잎 (T3 leaves 를 position 순서대로 24자리에 배치)
  * - branchIndex 를 주면 그 가지만 확대해서 보여주고 날짜를 표시해요 (가지 확대 화면)
  * - onLeafClick(leaf) 로 잎 선택, onBranchClick(index) 로 가지 선택
+ * - newPosition: 방금 붙인 잎 자리. 그 잎이 자라나는 애니메이션을 보여줘요 (A8 잎 배치 완료)
  */
-export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBranchClick, className = '' }) {
+export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBranchClick, newPosition, className = '' }) {
   const uid = useId();
   const zoomed = branchIndex !== undefined;
   const [vx, vy, vw, vh] = zoomed ? branchViewBox(branchIndex) : TREE_VIEWBOX;
@@ -71,7 +72,10 @@ export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBran
                         }
                       : undefined
                   }
-                  className={zoomed && onLeafClick ? 'cursor-pointer' : undefined}
+                  className={
+                    position === newPosition ? 'leaf-grow' : zoomed && onLeafClick ? 'cursor-pointer' : undefined
+                  }
+                  style={position === newPosition ? { transformOrigin: `${cx}px ${cy}px` } : undefined}
                 >
                   <defs>
                     <linearGradient

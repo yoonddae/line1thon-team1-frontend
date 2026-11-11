@@ -31,7 +31,7 @@ export default function ReviewPage() {
             <p className="text-sm text-ink-2">다음 복습: {formatMonthDay(data.nextReviewAt)}</p>
           )}
           <p className="mt-4 text-sm leading-relaxed text-ink-3">
-            단풍잎·마른 잎이 생기고 3일이 지나면
+            잎이 생기고 3일이 지나면
             <br />
             복습 문제가 이곳에 나타나요.
           </p>
@@ -84,9 +84,10 @@ export default function ReviewPage() {
       </div>
       <div className="sticky bottom-[72px] mt-auto bg-bg px-4 pt-4 pb-6">
         <Button onClick={() => startReview(reviews[0])} disabled={startingLeafId !== null}>
-          {startingLeafId !== null ? '복습 문제를 만들고 있어요...' : '처음부터 복습하기'}
+          처음부터 복습하기
         </Button>
       </div>
+      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
     </section>
   );
 }

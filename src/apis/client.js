@@ -31,7 +31,7 @@ client.interceptors.response.use(
 
     if (status === 401 && body?.error?.code !== 'LOGIN_FAILED') {
       clearToken();
-      if (window.location.pathname !== '/') window.location.replace('/');
+      if (window.location.pathname !== '/login') window.location.replace('/login');
     }
 
     return Promise.reject(

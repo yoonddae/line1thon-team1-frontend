@@ -14,8 +14,8 @@ export const ERROR_MESSAGES = {
   CONTENT_TOO_SHORT: '문제를 만들기에는 내용이 부족해요. 설명이나 예시를 더 넣어 주세요',
   ALREADY_SUBMITTED: '이미 제출한 문제예요',
   REVIEW_NOT_AVAILABLE: '아직 복습할 수 없는 잎이에요',
-  AI_SERVER_ERROR: '문제를 만들지 못했어요. 다시 시도해 주세요',
-  AI_TIMEOUT: '응답이 늦어지고 있어요. 다시 시도해 주세요',
+  AI_SERVER_ERROR: '잠시 후 다시 시도해 주세요',
+  AI_TIMEOUT: '잠시 후 다시 시도해 주세요',
   NETWORK: '연결을 확인해 주세요',
 };
 

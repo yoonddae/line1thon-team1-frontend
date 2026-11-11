@@ -4,6 +4,7 @@ import TabLayout from '@/components/layout/TabLayout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ROUTES } from '@/constants/routes';
 
+import SplashPage from '@/pages/auth/SplashPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import ForestPage from '@/pages/forest/ForestPage';
@@ -24,7 +25,8 @@ const router = createBrowserRouter([
     errorElement: <NotFoundPage />,
     children: [
       // 시작하기 (로그인 전)
-      { path: ROUTES.START, element: <LoginPage /> },
+      { path: ROUTES.START, element: <SplashPage /> },
+      { path: ROUTES.LOGIN, element: <LoginPage /> },
       { path: ROUTES.SIGNUP, element: <SignupPage /> },
 
       // 로그인 후

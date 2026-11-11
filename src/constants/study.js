@@ -12,14 +12,14 @@ export const STUDY_LEVEL_LABEL = Object.fromEntries(STUDY_LEVELS.map((l) => [l.v
 
 // 나무 배경 색상 backgroundColor (기본 BLUE). from 은 그라데이션 시작색이에요.
 export const BACKGROUNDS = [
+  { value: 'PINK', label: '분홍', from: '#F2CCBE' },
+  { value: 'YELLOW', label: '노랑', from: '#F2E6BE' },
+  { value: 'GREEN', label: '초록', from: '#BEF2C0' },
   { value: 'BLUE', label: '하늘', from: '#BEE1F2' },
-  { value: 'PINK', label: '분홍', from: '#F7D3DA' },
-  { value: 'YELLOW', label: '노랑', from: '#F8E9B5' },
-  { value: 'GREEN', label: '초록', from: '#CDEFD6' },
 ];
 export const DEFAULT_BACKGROUND = 'BLUE';
 export const getBackground = (value) =>
-  BACKGROUNDS.find((b) => b.value === value) ?? BACKGROUNDS[0];
+  BACKGROUNDS.find((b) => b.value === value) ?? BACKGROUNDS.find((b) => b.value === DEFAULT_BACKGROUND);
 
 export const FREE_TREE_LIMIT = 3;
 export const MAX_LEAVES = 24;
@@ -42,12 +42,12 @@ export const GRADE_INFO = {
   [GRADE.BUD]: { label: '잎눈', message: '기록은 남기고 다시 도전해요' },
 };
 
-// 피그마 잎 에셋 색 (base: 잎 바탕, from→to: 그늘 그라데이션)
+// 피그마 잎 에셋 색 (base: 잎 바탕, from→to: 그늘 그라데이션). 최종 시안 Grade=* 에셋과 같아요.
 export const GRADE_COLOR = {
   [GRADE.GREEN]: { base: '#00BC71', from: '#006B40', to: '#00BC70' },
   [GRADE.LIGHT_GREEN]: { base: '#7DBC00', from: '#588400', to: '#7DBC00' },
   [GRADE.AUTUMN]: { base: '#FFD500', from: '#AA6000', to: '#FFD400' },
-  [GRADE.BROWN]: { base: '#624025', from: '#2E1F13', to: '#7A5232' },
+  [GRADE.BROWN]: { base: '#624025', from: '#2E1F13', to: '#624025' },
   [GRADE.BUD]: { base: '#86FF61', from: '#46C221', to: '#86FF61' },
 };
 

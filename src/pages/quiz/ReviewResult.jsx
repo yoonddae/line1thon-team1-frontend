@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/common/Button';
 import Leaf from '@/components/common/Leaf';
+import Loading from '@/components/common/Loading';
 import { PlayIcon } from '@/components/common/Icons';
 import useApi from '@/hooks/useApi';
 import useStartReview from '@/pages/review/useStartReview';
@@ -9,19 +10,24 @@ import { ROUTES } from '@/constants/routes';
 import { GRADE, GRADE_INFO } from '@/constants/study';
 import { formatMonthDay } from '@/utils/date';
 
-// 복습 결과 (시안: "잎이 되살아났어요!" / "조금 아쉬워요")
+// A11 복습 결과 (시안: "잎이 되살아났어요!" / "조금 아쉬워요")
+// S2 REVIEW 응답: { passed, leaf: { beforeGrade, grade, studiedAt, reviewAvailableAt }, recoveredTopics, remainingReviewCount, results }
 export default function ReviewResult({ result, context }) {
   const navigate = useNavigate();
   const { startReview, startingLeafId } = useStartReview();
-  const { data: remaining } = useApi(() => getReviews(), []); // 남은 복습 잎
+  // "다음 잎 복습하기"에 쓸 다음 잎 (남은 개수는 응답의 remainingReviewCount)
+  const { data: remaining } = useApi(() => getReviews(), []);
 
-  const before = context.grade ?? GRADE.AUTUMN;
-  const success = result.grade === GRADE.GREEN || result.correctCount === 3;
-  const after = success ? GRADE.GREEN : before;
+  const success = Boolean(result.passed);
+  const before = result.leaf?.beforeGrade ?? context.grade ?? GRADE.AUTUMN;
+  const after = result.leaf?.grade ?? (success ? GRADE.GREEN : before);
+  const studiedAt = result.leaf?.studiedAt ?? context.studiedAt;
+  const remainingCount = result.remainingReviewCount ?? remaining?.reviews?.length ?? 0;
   const nextReview = remaining?.reviews?.[0];
+  // 성공: 되살린 주제 / 실패: 이번에 틀린 문제의 주제
   const topics = success
-    ? (result.feedback?.strengths ?? [])
-    : (result.feedback?.weaknesses ?? []);
+    ? (result.recoveredTopics ?? [])
+    : [...new Set((result.results ?? []).filter((r) => r.isCorrect === false).map((r) => r.topic))];
 
   return (
     <section className="flex flex-1 items-center bg-black/30 px-4">
@@ -42,7 +48,7 @@ export default function ReviewResult({ result, context }) {
             <>
               복습 3문제를 모두 맞혔어요.
               <br />
-              {formatMonthDay(context.studiedAt)} 잎이 싱싱한 잎으로 바뀌었어요.
+              {formatMonthDay(studiedAt)} 잎이 싱싱한 잎으로 바뀌었어요.
             </>
           ) : (
             <>
@@ -65,24 +71,25 @@ export default function ReviewResult({ result, context }) {
 
         <p className="mt-6 text-sm text-ink-3">
           {success
-            ? `남은 복습 잎 ${remaining?.reviews?.length ?? 0}개`
-            : result.nextReviewAt && `다음 복습: ${formatMonthDay(result.nextReviewAt)}`}
+            ? `남은 복습 잎 ${remainingCount}개`
+            : result.leaf?.reviewAvailableAt && `다음 복습: ${formatMonthDay(result.leaf.reviewAvailableAt)}`}
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
-          {success && nextReview && (
+          {success && remainingCount > 0 && nextReview && (
             <Button onClick={() => startReview(nextReview)} disabled={startingLeafId !== null}>
               다음 잎 복습하기
             </Button>
           )}
           <Button
-            variant={success && nextReview ? 'secondary' : 'primary'}
+            variant={success && remainingCount > 0 && nextReview ? 'secondary' : 'primary'}
             onClick={() => navigate(ROUTES.REVIEW, { replace: true })}
           >
             복습 목록으로
           </Button>
         </div>
       </div>
+      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
     </section>
   );
 }

@@ -22,7 +22,7 @@ export default function QuizPage() {
   const { quizSetId } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
-  const context = state?.context ?? {};
+  const passedContext = state?.context ?? {};
 
   const [quizSet, setQuizSet] = useState(state?.quizSet ?? null);
   const [loadError, setLoadError] = useState(null);
@@ -37,6 +37,14 @@ export default function QuizPage() {
     if (quizSet) return;
     getQuizSet(quizSetId).then(setQuizSet).catch(setLoadError);
   }, [quizSet, quizSetId]);
+
+  // 문제 세트 응답에 treeId·subjectName·studyId 가 있어서 화면 간 정보는 여기서 채워요.
+  const context = {
+    ...passedContext,
+    treeId: quizSet?.treeId ?? passedContext.treeId,
+    subjectName: quizSet?.subjectName ?? passedContext.subjectName,
+    studyId: quizSet?.studyId ?? passedContext.studyId,
+  };
 
   if (loadError) return <ErrorState message={getErrorMessage(loadError)} onRetry={() => navigate(0)} />;
   if (!quizSet) return <Loading />;
@@ -64,7 +72,7 @@ export default function QuizPage() {
       const payload = questions.map((q) =>
         q.questionType === QUESTION_TYPE.MULTIPLE_CHOICE
           ? { questionId: q.questionId, selectedIndex: answers[q.questionId] }
-          : { questionId: q.questionId, essayAnswer: answers[q.questionId] ?? '' },
+          : { questionId: q.questionId, essayText: answers[q.questionId] ?? '' },
       );
       const result = await submitAnswers(quizSet.quizSetId, payload);
       navigate(ROUTES.QUIZ_RESULT(quizSet.quizSetId), {

@@ -101,17 +101,16 @@ export default function ForestPage() {
           </button>
         ))}
 
+        {/* 시안 Card/Add */}
         <button
           type="button"
           onClick={handleAddTree}
-          className="flex h-[480px] w-[327px] shrink-0 snap-center flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-line text-ink-3"
+          className="relative flex h-[480px] w-[327px] shrink-0 snap-center flex-col justify-end rounded-3xl bg-surface p-6 text-left"
         >
-          <span className="text-5xl leading-none font-extralight text-ink-4">+</span>
-          <span className="text-base font-medium">
-            {data?.canAddFreeTree ? '새 나무 심기' : '추가 나무 구매하고 심기'}
-          </span>
-          <span className="text-sm text-ink-4">
-            무료 나무 {data?.treeCount ?? 0} / {data?.freeTreeLimit ?? 3}
+          <span className="absolute inset-0 flex items-center justify-center text-5xl font-extralight text-ink-2">+</span>
+          <span className="text-2xl font-semibold text-ink">나무 추가</span>
+          <span className="mt-1 text-sm text-ink-3">
+            무료 나무 {data?.treeCount ?? 0}/{data?.freeTreeLimit ?? 3}
           </span>
         </button>
       </div>

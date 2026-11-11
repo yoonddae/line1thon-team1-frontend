@@ -10,25 +10,30 @@ import { setToken } from '@/utils/auth';
 import { sanitizePassword, validateNickname, validatePassword } from '@/utils/validation';
 import { getErrorMessage } from '@/constants/messages';
 
-// 시작하기 - 가입 (U1). 닉네임 + 비밀번호 칸만 있어요.
+// 시작하기 - 가입 (U1, 시안 #3·#4). 비밀번호 확인은 화면에서만 비교하고 서버에는 보내지 않아요.
 export default function SignupPage() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const next = { nickname: validateNickname(nickname), password: validatePassword(password) };
+    const next = {
+      nickname: validateNickname(nickname),
+      password: validatePassword(password),
+      passwordConfirm: passwordConfirm === password ? '' : '비밀번호가 일치하지 않아요',
+    };
     setErrors(next);
-    if (next.nickname || next.password || loading) return;
+    if (next.nickname || next.password || next.passwordConfirm || loading) return;
 
     setLoading(true);
     try {
       const { accessToken } = await signup({ nickname: nickname.trim(), password });
       setToken(accessToken);
-      navigate(ROUTES.TREE_CREATE, { replace: true, state: { first: true } });
+      navigate(ROUTES.FOREST, { replace: true }); // A1 → A2 숲
     } catch (err) {
       const message = getErrorMessage(err);
       setErrors(err.code === 'PASSWORD_INVALID' ? { password: message } : { nickname: message });
@@ -60,6 +65,16 @@ export default function SignupPage() {
           onChange={(e) => setPassword(sanitizePassword(e.target.value))}
           placeholder="••••"
           error={errors.password}
+        />
+        <TextField
+          label="비밀번호 확인"
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(sanitizePassword(e.target.value))}
+          placeholder="••••"
+          error={errors.passwordConfirm}
         />
         <InfoBox>
           비밀번호 찾기 기능이 없어요.
