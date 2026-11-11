@@ -1,23 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import PageHeader from '@/components/common/PageHeader';
 import Button from '@/components/common/Button';
 import Loading, { ErrorState } from '@/components/common/Loading';
 import Modal, { ModalActions, ModalText, ModalTitle } from '@/components/common/Modal';
+import { KebabIcon } from '@/components/common/Icons';
+import StudyHeader from '@/components/study/StudyHeader';
+import { AiAlertModal, AiLoadingScreen, AiRetryScreen } from '@/components/study/AiStatus';
 import { getQuizSet, submitAnswers } from '@/apis/study';
-import { isInProgressError } from '@/apis/client';
 import { ROUTES } from '@/constants/routes';
 import { DIFFICULTY_LABEL, QUESTION_TYPE, QUIZ_SET_TYPE } from '@/constants/study';
 import { getErrorMessage } from '@/constants/messages';
+import { AI_ERROR_KIND, aiErrorKind } from '@/constants/aiError';
 
-const TITLE = {
-  [QUIZ_SET_TYPE.INITIAL]: '문제 풀기',
-  [QUIZ_SET_TYPE.RETRY]: '다시 도전',
-  [QUIZ_SET_TYPE.REVIEW]: '복습',
-};
+const MAX_ESSAY = 1000;
 
-// 문제 풀기 (첫 풀이 7문제 · 잎눈 재도전 7문제 · 복습 3문제 공용)
-// 답은 제출(S2) 때 한 번에 보내요. 나갔다 오면 같은 문제를 1번부터 다시 풀어요(S4).
+// 문제 풀기 (피그마 「디자인」 숲_공부 내용 입력_퀴즈 객관식 / _퀴즈 서술형)
+// 첫 풀이 7문제 · 잎눈 재도전 7문제 · 복습 3문제 공용. 답은 채점(S2) 때 한 번에 보내요.
+// 나갔다 오면 같은 문제를 1번부터 다시 풀어요(S4). 채점이 실패해도 고른 답은 그대로 남아 같은 답으로 다시 보내요.
 export default function QuizPage() {
   const { quizSetId } = useParams();
   const navigate = useNavigate();
@@ -28,9 +27,11 @@ export default function QuizPage() {
   const [loadError, setLoadError] = useState(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [phase, setPhase] = useState('solve'); // solve | grading | retry
+  const [error, setError] = useState(null);
+  const [alert, setAlert] = useState(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const sending = useRef(false);
 
   // 새로고침 등으로 state 가 없으면 S4 로 다시 받아요.
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function QuizPage() {
     treeId: quizSet?.treeId ?? passedContext.treeId,
     subjectName: quizSet?.subjectName ?? passedContext.subjectName,
     studyId: quizSet?.studyId ?? passedContext.studyId,
+    studyLevel: quizSet?.studyLevel ?? passedContext.studyLevel,
   };
 
   if (loadError) return <ErrorState message={getErrorMessage(loadError)} onRetry={() => navigate(0)} />;
@@ -53,26 +55,27 @@ export default function QuizPage() {
   const question = questions[index];
   const isLast = index === questions.length - 1;
   const isMultiple = question.questionType === QUESTION_TYPE.MULTIPLE_CHOICE;
-  const unansweredMultiple = questions.filter(
-    (q) => q.questionType === QUESTION_TYPE.MULTIPLE_CHOICE && answers[q.questionId] === undefined,
-  );
+  const isReview = quizSet.quizSetType === QUIZ_SET_TYPE.REVIEW;
+  const answered = answers[question.questionId] !== undefined;
 
   const setAnswer = (value) => setAnswers((prev) => ({ ...prev, [question.questionId]: value }));
 
   const handleSubmit = async () => {
-    if (submitting) return;
-    if (unansweredMultiple.length) {
-      setIndex(questions.indexOf(unansweredMultiple[0]));
-      setSubmitError('객관식 문제에 모두 답해 주세요');
+    if (sending.current) return;
+    const unanswered = questions.find(
+      (q) => q.questionType === QUESTION_TYPE.MULTIPLE_CHOICE && answers[q.questionId] === undefined,
+    );
+    if (unanswered) {
+      setIndex(questions.indexOf(unanswered));
       return;
     }
-    setSubmitting(true);
-    setSubmitError('');
+    sending.current = true;
+    setPhase('grading');
     try {
       const payload = questions.map((q) =>
         q.questionType === QUESTION_TYPE.MULTIPLE_CHOICE
           ? { questionId: q.questionId, selectedIndex: answers[q.questionId] }
-          : { questionId: q.questionId, essayText: answers[q.questionId] ?? '' },
+          : { questionId: q.questionId, essayText: (answers[q.questionId] ?? '').trim() },
       );
       const result = await submitAnswers(quizSet.quizSetId, payload);
       navigate(ROUTES.QUIZ_RESULT(quizSet.quizSetId), {
@@ -80,52 +83,67 @@ export default function QuizPage() {
         state: { result, quizSetType: quizSet.quizSetType, context },
       });
     } catch (err) {
-      if (!isInProgressError(err)) setSubmitError(getErrorMessage(err));
-      setSubmitting(false);
+      const kind = aiErrorKind(err);
+      if (kind === AI_ERROR_KIND.IGNORE) return setPhase('solve');
+      if (['ALREADY_SUBMITTED', 'NOT_BUD_RESULT', 'QUIZ_SET_NOT_FOUND'].includes(err.code)) {
+        return navigate(context.treeId ? ROUTES.TREE(context.treeId) : ROUTES.FOREST, { replace: true });
+      }
+      setError(err);
+      if (kind === AI_ERROR_KIND.RETRY) return setPhase('retry');
+      setPhase('solve');
+      setAlert({ message: getErrorMessage(err), error: err });
+    } finally {
+      sending.current = false;
     }
   };
 
-  return (
-    <section className="flex flex-1 flex-col pb-8">
-      <PageHeader
-        title={TITLE[quizSet.quizSetType] ?? '문제 풀기'}
-        subtitle={context.subjectName ? `${context.subjectName} 나무` : undefined}
-        onBack={() => setLeaveOpen(true)}
-      />
+  if (phase === 'grading') return <AiLoadingScreen message="AI가 채점하고 있어요" />;
+  if (phase === 'retry') return <AiRetryScreen error={error} onRetry={handleSubmit} onClose={() => setPhase('solve')} />;
 
-      <div className="px-4">
-        <div className="flex items-center justify-between text-sm text-ink-3">
-          <span>
-            <b className="text-ink">{index + 1}</b> / {questions.length}
-          </span>
-          <span className="rounded-full bg-surface px-2.5 py-1 text-xs">
-            {DIFFICULTY_LABEL[question.difficulty] ?? ''}
-          </span>
-        </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-line">
-          <div className="h-full bg-primary transition-all" style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
-        </div>
+  return (
+    <section className="flex flex-1 flex-col bg-subtle">
+      <StudyHeader
+        title={`${context.subjectName ?? ''} · ${index + 1} / ${questions.length}`}
+        onBack={() => (index > 0 ? setIndex((i) => i - 1) : setLeaveOpen(true))}
+        right={<KebabIcon />}
+      />
+      <div className="mt-3 flex gap-2 px-4" aria-hidden>
+        {questions.map((q, i) => (
+          <span key={q.questionId} className={`h-1.5 flex-1 rounded-full ${i <= index ? 'bg-primary' : 'bg-line'}`} />
+        ))}
       </div>
 
-      <div className="flex flex-1 flex-col gap-5 px-4 pt-6">
-        {question.topic && <p className="text-xs text-ink-3">{question.topic}</p>}
-        <p className="-mt-3 text-lg leading-relaxed font-semibold whitespace-pre-line text-ink">{question.content}</p>
+      <div className="flex flex-1 flex-col gap-9 px-4 pt-9 pb-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {isMultiple ? (
+              <>
+                <Tag>{DIFFICULTY_LABEL[question.difficulty] ?? ''}</Tag>
+                <Tag>객관식</Tag>
+              </>
+            ) : (
+              <Tag>서술형</Tag>
+            )}
+          </div>
+          <p className="text-2xl leading-[1.4] font-medium whitespace-pre-line text-ink-2">{question.content}</p>
+        </div>
 
         {isMultiple ? (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3" role="radiogroup">
             {question.options.map((option, i) => {
               const selected = answers[question.questionId] === i;
               return (
                 <li key={i}>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={selected}
                     onClick={() => setAnswer(i)}
-                    className={`flex w-full items-start gap-3 rounded-xl p-4 text-left text-sm ${
-                      selected ? 'border-[1.5px] border-primary bg-primary-soft text-ink' : 'bg-surface text-ink-2'
+                    className={`w-full rounded-xl border-[1.5px] bg-surface p-4 text-left text-lg leading-[1.4] font-medium ${
+                      selected ? 'border-primary text-ink-2' : 'border-transparent text-ink-3'
                     }`}
                   >
-                    <span className={`font-semibold ${selected ? 'text-primary' : 'text-ink-4'}`}>{i + 1}</span>
-                    <span className="leading-relaxed">{option}</span>
+                    {option}
                   </button>
                 </li>
               );
@@ -135,32 +153,33 @@ export default function QuizPage() {
           <textarea
             value={answers[question.questionId] ?? ''}
             onChange={(e) => setAnswer(e.target.value)}
-            placeholder="답을 서술해 주세요"
-            className="min-h-48 resize-none rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed outline-none placeholder:text-ink-4 focus:border-primary"
+            maxLength={MAX_ESSAY}
+            placeholder="답변을 입력하세요."
+            aria-label="서술형 답변"
+            className="h-[300px] resize-none rounded-xl border border-line bg-surface p-4 text-sm leading-[1.4] text-ink-2 outline-none placeholder:text-ink-4 focus:border-primary"
           />
         )}
 
-        {submitError && <p className="text-sm text-danger">{submitError}</p>}
-
-        <div className="mt-auto flex gap-2 pt-4">
-          {index > 0 && (
-            <Button variant="secondary" className="w-1/3" onClick={() => setIndex((i) => i - 1)}>
-              이전
-            </Button>
-          )}
-          {isLast ? (
-            <Button onClick={handleSubmit} disabled={submitting}>
-              제출하기
-            </Button>
-          ) : (
-            <Button onClick={() => setIndex((i) => i + 1)} disabled={isMultiple && answers[question.questionId] === undefined}>
-              다음
-            </Button>
-          )}
-        </div>
+        {!isReview && (
+          <div className="rounded-xl bg-info p-4 text-sm leading-[1.4] text-ink-2">
+            쉬움 2 · 보통 2 · 어려움 2 · 서술형 1문제예요.
+            <br />
+            서술형은 맞힌 개수에 들어가지 않고, AI 피드백만 받아요.
+          </div>
+        )}
       </div>
 
-      {submitting && <Loading fullScreen message={'채점하고 있어요\n최대 1분 정도 걸릴 수 있어요'} />}
+      <div className="sticky bottom-0 bg-subtle px-4 pt-3 pb-[calc(24px+env(safe-area-inset-bottom))]">
+        {isLast ? (
+          <Button onClick={handleSubmit}>채점하기</Button>
+        ) : (
+          <Button onClick={() => setIndex((i) => i + 1)} disabled={isMultiple && !answered}>
+            다음 문제
+          </Button>
+        )}
+      </div>
+
+      <AiAlertModal message={alert?.message} error={alert?.error} onClose={() => setAlert(null)} />
 
       <Modal open={leaveOpen} onClose={() => setLeaveOpen(false)}>
         <ModalTitle>풀이를 멈출까요?</ModalTitle>
@@ -174,4 +193,8 @@ export default function QuizPage() {
       </Modal>
     </section>
   );
+}
+
+function Tag({ children }) {
+  return <span className="rounded-full bg-line px-3 py-2 text-xs leading-[1.1] font-semibold text-ink-2">{children}</span>;
 }

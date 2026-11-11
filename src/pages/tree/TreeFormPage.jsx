@@ -75,15 +75,15 @@ export default function TreeFormPage() {
   if (loading) return <Loading />;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-1 flex-col pb-8">
+    <form onSubmit={handleSubmit} className="flex flex-1 flex-col bg-subtle pb-8">
       <PageHeader title={isEdit ? '나무 수정' : '새 나무 심기'} />
 
-      <div className="mt-6 flex flex-col gap-8 px-4">
+      <div className="mt-6 flex flex-col gap-6 px-4">
         <TextField
           label="과목 이름"
           value={subjectName}
           onChange={(e) => setSubjectName(e.target.value)}
-          placeholder="예: 수학"
+          placeholder="과목 이름을 입력하세요."
           maxLength={20}
           error={error}
         />
@@ -98,8 +98,8 @@ export default function TreeFormPage() {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => setStudyLevel(level.value)}
-                  className={`h-12 rounded-xl bg-surface text-sm ${
-                    selected ? 'border-[1.5px] border-primary font-semibold text-ink' : 'text-ink-4'
+                  className={`h-12 rounded-xl border-[1.5px] bg-surface text-sm ${
+                    selected ? 'border-primary font-semibold text-ink-2' : 'border-transparent text-ink-4'
                   }`}
                 >
                   {level.label}
@@ -122,10 +122,12 @@ export default function TreeFormPage() {
                       aria-pressed={selected}
                       disabled={!shape.available}
                       onClick={() => setTreeShape(shape.value)}
-                      className={`flex h-[88px] flex-col items-center justify-center gap-2 rounded-xl text-sm ${
+                      className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] py-4 text-sm whitespace-nowrap ${
                         selected
-                          ? 'border-[1.5px] border-primary bg-surface font-semibold text-ink'
-                          : 'bg-info text-ink-3'
+                          ? 'border-primary bg-surface font-semibold text-ink-2'
+                          : shape.available
+                            ? 'border-transparent bg-surface text-ink-2'
+                            : 'border-transparent bg-info text-ink-3'
                       }`}
                     >
                       <TreeShapeIcon shape={shape.value} />
