@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/common/Button';
-import Leaf from '@/components/common/Leaf';
 import { ErrorTriangleIcon, SpinnerIcon } from './StudyIcons';
 import { errorCodeLabel } from '@/constants/aiError';
 import { MESSAGE_INTERVAL_MS } from '@/constants/loadingMessages';
@@ -25,18 +24,12 @@ const toList = (messages, message) => (messages?.length ? messages : [message]);
 
 // 피그마 「로딩화면」 [긴 로딩] 전체 화면: 공부 입력(10~14초) · 다시 도전(약 12초) · 복습 시작(약 5초), 최대 60초
 // messages 를 주면 3~4초마다 바뀌어요. (예전처럼 message 하나만 줘도 돼요)
-// 잎이 자라며 흔들리는 애니메이션으로 기다리는 시간이 덜 지루하게 했어요.
 export function AiLoadingScreen({ messages, message = 'AI가 공부한 내용을 읽고 있어요' }) {
   const text = useRotatingMessage(toList(messages, message));
   return (
     <div role="status" aria-live="polite" className="fixed inset-0 z-50 flex justify-center bg-neutral-300">
-      <div className="flex w-full max-w-[430px] flex-col items-center justify-center gap-6 bg-subtle px-2.5">
-        <div className="flex flex-col items-center">
-          <div className="loading-sprout">
-            <Leaf className="size-16" />
-          </div>
-          <span className="loading-shadow mt-1 h-2 w-12 rounded-full bg-black/10" />
-        </div>
+      <div className="flex w-full max-w-[430px] flex-col items-center justify-center gap-3 bg-subtle px-2.5">
+        <SpinnerIcon />
         <p key={text} className="loading-text text-center text-lg leading-[1.4] font-medium text-ink-2">
           {text}
         </p>
