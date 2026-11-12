@@ -15,6 +15,7 @@ import { ROUTES } from '@/constants/routes';
 import { AD_PLACEMENT } from '@/constants/study';
 import { getErrorMessage } from '@/constants/messages';
 import { AI_ERROR_KIND, aiErrorKind } from '@/constants/aiError';
+import { LOADING_MESSAGES } from '@/constants/loadingMessages';
 
 const GROW_MS = 1400; // 잎 자라는 애니메이션(지연 포함) 시간
 
@@ -79,7 +80,7 @@ export default function BranchPage() {
     }
   };
 
-  if (retryPhase === 'loading') return <AiLoadingScreen message="AI가 새 문제를 만들고 있어요" />;
+  if (retryPhase === 'loading') return <AiLoadingScreen messages={LOADING_MESSAGES.RETRY} />;
   if (retryPhase === 'failed') {
     return <AiRetryScreen error={retryError} onRetry={handleRetry} onClose={() => setRetryPhase('idle')} />;
   }

@@ -58,7 +58,7 @@ export default function RecordPage() {
           {leaf.study?.imageUrls?.length > 0 && (
             <div className="mb-3 grid grid-cols-2 gap-2">
               {leaf.study.imageUrls.map((url) => (
-                <img key={url} src={url} alt="공부한 노트" className="w-full rounded-lg object-cover" />
+                <NoteImage key={url} src={url} />
               ))}
             </div>
           )}
@@ -148,4 +148,19 @@ function QuestionReview({ question, essayFeedback }) {
       {question.explanation && <p className="mt-3 text-ink-3">해설: {question.explanation}</p>}
     </li>
   );
+}
+
+// 아이폰 HEIC 사진처럼 브라우저가 못 여는 사진은 깨진 이미지 대신 안내를 보여줘요 (백엔드 공지 11/12)
+function NoteImage({ src }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-subtle p-3 text-center text-xs leading-relaxed text-ink-3">
+        이 사진은 이 브라우저에서
+        <br />
+        볼 수 없어요
+      </div>
+    );
+  }
+  return <img src={src} alt="공부한 노트" onError={() => setBroken(true)} className="w-full rounded-lg object-cover" />;
 }

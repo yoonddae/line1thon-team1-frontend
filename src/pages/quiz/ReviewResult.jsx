@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/common/Button';
 import Leaf from '@/components/common/Leaf';
-import Loading from '@/components/common/Loading';
 import { PlayIcon } from '@/components/common/Icons';
 import useApi from '@/hooks/useApi';
 import useStartReview from '@/pages/review/useStartReview';
@@ -14,7 +13,7 @@ import { formatMonthDay } from '@/utils/date';
 // S2 REVIEW 응답: { passed, leaf: { beforeGrade, grade, studiedAt, reviewAvailableAt }, recoveredTopics, remainingReviewCount, results }
 export default function ReviewResult({ result, context }) {
   const navigate = useNavigate();
-  const { startReview, startingLeafId } = useStartReview();
+  const { startReview, startingLeafId, reviewStatus } = useStartReview();
   // "다음 잎 복습하기"에 쓸 다음 잎 (남은 개수는 응답의 remainingReviewCount)
   const { data: remaining } = useApi(() => getReviews(), []);
 
@@ -89,7 +88,7 @@ export default function ReviewResult({ result, context }) {
           </Button>
         </div>
       </div>
-      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
+      {reviewStatus}
     </section>
   );
 }

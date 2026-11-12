@@ -5,12 +5,13 @@ import Loading, { ErrorState } from '@/components/common/Loading';
 import Modal, { ModalActions, ModalText, ModalTitle } from '@/components/common/Modal';
 import { KebabIcon } from '@/components/common/Icons';
 import StudyHeader from '@/components/study/StudyHeader';
-import { AiAlertModal, AiLoadingScreen, AiRetryScreen } from '@/components/study/AiStatus';
+import { AiAlertModal, AiRetryScreen, AiShortLoading } from '@/components/study/AiStatus';
 import { getQuizSet, submitAnswers } from '@/apis/study';
 import { ROUTES } from '@/constants/routes';
 import { DIFFICULTY_LABEL, QUESTION_TYPE, QUIZ_SET_TYPE } from '@/constants/study';
 import { getErrorMessage } from '@/constants/messages';
 import { AI_ERROR_KIND, aiErrorKind } from '@/constants/aiError';
+import { LOADING_MESSAGES } from '@/constants/loadingMessages';
 
 const MAX_ESSAY = 1000;
 
@@ -97,7 +98,6 @@ export default function QuizPage() {
     }
   };
 
-  if (phase === 'grading') return <AiLoadingScreen message="AI가 채점하고 있어요" />;
   if (phase === 'retry') return <AiRetryScreen error={error} onRetry={handleSubmit} onClose={() => setPhase('solve')} />;
 
   return (
@@ -179,6 +179,10 @@ export default function QuizPage() {
         )}
       </div>
 
+      {/* [짧은 로딩] 채점하기: 지금 화면 위에 띄우고 버튼은 눌리지 않아요 */}
+      {phase === 'grading' && (
+        <AiShortLoading messages={isReview ? LOADING_MESSAGES.REVIEW_GRADING : LOADING_MESSAGES.GRADING} />
+      )}
       <AiAlertModal message={alert?.message} error={alert?.error} onClose={() => setAlert(null)} />
 
       <Modal open={leaveOpen} onClose={() => setLeaveOpen(false)}>

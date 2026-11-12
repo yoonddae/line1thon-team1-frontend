@@ -12,7 +12,7 @@ import { formatMonthDay } from '@/utils/date';
 // 복습 탭 (R0): 나무별로 묶어 보여주고, "처음부터 복습하기"는 목록의 첫 잎부터 시작해요.
 export default function ReviewPage() {
   const { data, loading, error, reload } = useApi(() => getReviews(), []);
-  const { startReview, startingLeafId } = useStartReview();
+  const { startReview, startingLeafId, reviewStatus } = useStartReview();
 
   if (loading) return <Loading />;
   if (error) return <ErrorState message={getErrorMessage(error)} onRetry={reload} />;
@@ -87,7 +87,7 @@ export default function ReviewPage() {
           처음부터 복습하기
         </Button>
       </div>
-      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
+      {reviewStatus}
     </section>
   );
 }
