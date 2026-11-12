@@ -9,6 +9,7 @@ import { skyGradient } from '@/components/tree/SkyBackground';
 import ResumeQuizModal from '@/pages/forest/ResumeQuizModal';
 import DeleteTreeModal from './DeleteTreeModal';
 import ReviewSheet from './ReviewSheet';
+import { AiAlertModal } from '@/components/study/AiStatus';
 import useApi from '@/hooks/useApi';
 import { getTree } from '@/apis/tree';
 import { ROUTES } from '@/constants/routes';
@@ -23,6 +24,7 @@ export default function TreeDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
+  const [notice, setNotice] = useState(''); // ③ 안내 팝업 (TREE_FULL)
 
   const { data: tree, loading, error, reload } = useApi(() => getTree(treeId), [treeId]);
 
@@ -39,7 +41,7 @@ export default function TreeDetailPage() {
 
   const handleStudy = () => {
     if (tree.pendingQuizSetId) setResumeOpen(true);
-    else if (tree.leafCount >= MAX_LEAVES) alert(ERROR_MESSAGES.TREE_FULL);
+    else if (tree.leafCount >= MAX_LEAVES) setNotice(ERROR_MESSAGES.TREE_FULL);
     else navigate(ROUTES.STUDY(treeId));
   };
 
@@ -97,6 +99,7 @@ export default function TreeDetailPage() {
 
       <DeleteTreeModal tree={deleteOpen ? tree : null} onClose={() => setDeleteOpen(false)} />
       <ResumeQuizModal tree={resumeOpen ? tree : null} onClose={() => setResumeOpen(false)} />
+      <AiAlertModal message={notice} onClose={() => setNotice('')} />
     </section>
   );
 }

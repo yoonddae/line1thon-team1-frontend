@@ -11,6 +11,7 @@ import { ROUTES } from '@/constants/routes';
 import { INPUT_TYPE, MAX_LEAVES } from '@/constants/study';
 import { ERROR_MESSAGES, getErrorMessage } from '@/constants/messages';
 import { AI_ERROR_KIND, aiErrorKind } from '@/constants/aiError';
+import { LOADING_MESSAGES } from '@/constants/loadingMessages';
 
 const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -103,7 +104,9 @@ export default function MaterialInputPage() {
     }
   };
 
-  if (phase === 'loading') return <AiLoadingScreen message="AI가 공부한 내용을 읽고 있어요" />;
+  if (phase === 'loading') {
+    return <AiLoadingScreen messages={hasPhoto ? LOADING_MESSAGES.STUDY_IMAGE : LOADING_MESSAGES.STUDY_TEXT} />;
+  }
   if (phase === 'retry') return <AiRetryScreen error={error} onRetry={handleSubmit} onClose={() => setPhase('input')} />;
 
   return (

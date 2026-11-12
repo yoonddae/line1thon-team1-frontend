@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import useApi from '@/hooks/useApi';
-import Loading from '@/components/common/Loading';
 import { getTreeReviews } from '@/apis/review';
 import ReviewItem from '@/pages/review/ReviewItem';
 import useStartReview from '@/pages/review/useStartReview';
@@ -9,7 +8,7 @@ import useStartReview from '@/pages/review/useStartReview';
 export default function ReviewSheet({ treeId }) {
   const [open, setOpen] = useState(false);
   const { data } = useApi(() => getTreeReviews(treeId), [treeId]);
-  const { startReview, startingLeafId } = useStartReview();
+  const { startReview, startingLeafId, reviewStatus } = useStartReview();
   const reviews = data?.reviews ?? [];
 
   if (!reviews.length) return null;
@@ -35,13 +34,13 @@ export default function ReviewSheet({ treeId }) {
                 tone="subtle"
                 disabled={startingLeafId !== null}
                 loading={startingLeafId === review.leafId}
-                onClick={() => startReview(review, data.subjectName)}
+                onClick={() => startReview({ ...review, treeId: data.treeId ?? Number(treeId) }, data.subjectName)}
               />
             </li>
           ))}
         </ul>
       )}
-      {startingLeafId !== null && <Loading fullScreen message="복습 문제를 만들고 있어요" />}
+      {reviewStatus}
     </div>
   );
 }

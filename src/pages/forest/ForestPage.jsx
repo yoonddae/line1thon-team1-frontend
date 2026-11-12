@@ -6,6 +6,7 @@ import Loading, { ErrorState } from '@/components/common/Loading';
 import TreeView from '@/components/tree/TreeView';
 import { skyGradient } from '@/components/tree/SkyBackground';
 import ResumeQuizModal from '@/pages/forest/ResumeQuizModal';
+import { AiAlertModal } from '@/components/study/AiStatus';
 import useApi from '@/hooks/useApi';
 import { getTree, getTrees } from '@/apis/tree';
 import { ROUTES } from '@/constants/routes';
@@ -24,6 +25,7 @@ export default function ForestPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [details, setDetails] = useState({}); // treeId → T3 (카드에 실제 잎을 그리기 위해)
   const [resumeTree, setResumeTree] = useState(null);
+  const [notice, setNotice] = useState(''); // ③ 안내 팝업 (TREE_FULL)
 
   const { data, loading, error, reload } = useApi(() => getTrees(), []);
   const trees = data?.trees ?? [];
@@ -60,7 +62,7 @@ export default function ForestPage() {
   const handleStudy = async () => {
     if (!activeTree) return;
     if (activeTree.leafCount >= MAX_LEAVES) {
-      alert(ERROR_MESSAGES.TREE_FULL);
+      setNotice(ERROR_MESSAGES.TREE_FULL);
       return;
     }
     try {
@@ -150,6 +152,7 @@ export default function ForestPage() {
       </div>
 
       <ResumeQuizModal tree={resumeTree} onClose={() => setResumeTree(null)} />
+      <AiAlertModal message={notice} onClose={() => setNotice('')} />
     </section>
   );
 }
