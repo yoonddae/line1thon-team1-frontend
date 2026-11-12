@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import treeBase from '@/assets/images/tree-base.svg';
-import { BRANCH_SLOTS, TREE_VIEWBOX } from './treeSlots';
+import { BRANCH_PATHS, BRANCH_SLOTS, BRANCH_VIEWBOXES, TREE_VIEWBOX } from './treeSlots';
 import { GRADE, GRADE_COLOR } from '@/constants/study';
 import { formatShortDate } from '@/utils/date';
 
@@ -16,16 +16,6 @@ const slotCenter = (slot) => {
 const BRANCH_START = [1, 6, 13, 20];
 export const branchOf = (position) => BRANCH_START.findLastIndex((start) => position >= start);
 
-const branchViewBox = (branchIndex) => {
-  const centers = BRANCH_SLOTS[branchIndex].map(slotCenter);
-  const xs = centers.map(([x]) => x);
-  const ys = centers.map(([, y]) => y);
-  const pad = 48;
-  const minX = Math.min(...xs) - pad;
-  const minY = Math.min(...ys) - pad;
-  const size = Math.max(Math.max(...xs) - minX + pad, Math.max(...ys) - minY + pad);
-  return [minX, minY, size, size];
-};
 
 /**
  * 나무 + 잎 (T3 leaves 를 position 순서대로 24자리에 배치)
@@ -36,12 +26,17 @@ const branchViewBox = (branchIndex) => {
 export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBranchClick, newPosition, className = '', style }) {
   const uid = useId();
   const zoomed = branchIndex !== undefined;
-  const [vx, vy, vw, vh] = zoomed ? branchViewBox(branchIndex) : TREE_VIEWBOX;
+  const [vx, vy, vw, vh] = zoomed ? BRANCH_VIEWBOXES[branchIndex] : TREE_VIEWBOX;
   const leafByPosition = Object.fromEntries(leaves.map((leaf) => [leaf.position, leaf]));
 
   return (
     <svg viewBox={`${vx} ${vy} ${vw} ${vh}`} className={className} style={style} role="img" aria-label="나무">
-      <image href={treeBase} x={TREE_VIEWBOX[0]} y={TREE_VIEWBOX[1]} width={TREE_VIEWBOX[2]} height={TREE_VIEWBOX[3]} />
+      {/* 가지 확대는 시안처럼 그 가지만 따로 그리고, 전체 나무는 나무 그림 위에 잎을 올려요 */}
+      {zoomed ? (
+        <path d={BRANCH_PATHS[branchIndex]} fill="#C55A34" />
+      ) : (
+        <image href={treeBase} x={TREE_VIEWBOX[0]} y={TREE_VIEWBOX[1]} width={TREE_VIEWBOX[2]} height={TREE_VIEWBOX[3]} />
+      )}
 
       {BRANCH_SLOTS.map((slots, b) => {
         if (zoomed && b !== branchIndex) return null;
