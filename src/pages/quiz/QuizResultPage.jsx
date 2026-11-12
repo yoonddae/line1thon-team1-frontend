@@ -42,6 +42,9 @@ function GradeResult({ result, context }) {
   const { leaf, feedback = {}, correctCount, gradedCount = 6 } = result;
   const results = [...result.results].sort((a, b) => a.number - b.number);
   const reachedUntil = GRADE_SCALE.findIndex((s) => s.grade === leaf?.grade);
+  // 잎 표시 5개가 같은 간격(0·25·50·75·100%)이라, 막대도 맞힌 개수 비율이 아니라 받은 등급 위치까지 채워요.
+  // (예: 2/6 → 단풍잎. 개수 비율 33% 로 채우면 마른 잎까지만 찬 것처럼 보였어요)
+  const progress = reachedUntil < 0 ? 0 : (reachedUntil / (GRADE_SCALE.length - 1)) * 100;
 
   // S2 응답에는 잎 자리(position)가 없어서 T3 로 찾아 가지를 정해요.
   const goToBranch = async () => {
@@ -75,8 +78,8 @@ function GradeResult({ result, context }) {
 
         {/* 진척도 그래프: 잎눈(0) · 마른 잎(1) · 단풍잎(2~3) · 연두잎(4~5) · 싱싱한 잎(6) */}
         <div className="relative flex justify-between" aria-label={`맞힌 개수 ${correctCount}개`}>
-          <div className="absolute inset-x-3 top-9 h-1 overflow-hidden rounded-full bg-line" aria-hidden>
-            <div className="h-full bg-primary" style={{ width: `${(correctCount / gradedCount) * 100}%` }} />
+          <div className="absolute inset-x-[15px] top-9 h-1 overflow-hidden rounded-full bg-line" aria-hidden>
+            <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
           </div>
           {GRADE_SCALE.map((s, i) => (
             <div key={s.grade} className="relative flex w-[30px] flex-col items-center gap-3">
