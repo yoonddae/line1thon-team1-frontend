@@ -100,7 +100,7 @@ export default function BranchPage() {
         subtitle={`잎 ${leaves.length}개`}
         onBack={() => navigate(ROUTES.TREE(treeId))}
       />
-      <div className="flex flex-1 items-center justify-center px-4">
+      <div className="flex flex-1 items-center justify-center">
         {leaves.length ? (
           <TreeView
             leaves={visibleLeaves}

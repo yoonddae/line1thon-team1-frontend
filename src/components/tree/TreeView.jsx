@@ -5,11 +5,20 @@ import { GRADE, GRADE_COLOR } from '@/constants/study';
 import { formatShortDate } from '@/utils/date';
 
 // 잎 자리의 중심 좌표 (rotate 는 중심 그대로, matrix 는 변환 적용)
-const slotCenter = (slot) => {
+const slotMatrix = (slot) => {
   const m = slot.transform?.match(/^matrix\(([^)]+)\)/);
-  if (!m) return [slot.cx, slot.cy];
-  const [a, b, c, d, e, f] = m[1].split(/[\s,]+/).map(Number);
+  return m ? m[1].split(/[\s,]+/).map(Number) : [1, 0, 0, 1, 0, 0];
+};
+const slotCenter = (slot) => {
+  const [a, b, c, d, e, f] = slotMatrix(slot);
   return [a * slot.cx + c * slot.cy + e, b * slot.cx + d * slot.cy + f];
+};
+// 잎의 긴 축 방향 (단위 벡터)
+const slotAxis = (slot) => {
+  const [a, b, c, d] = slotMatrix(slot);
+  const [x, y] = slot.rx >= slot.ry ? [a, b] : [c, d];
+  const len = Math.hypot(x, y) || 1;
+  return [x / len, y / len];
 };
 
 // position(1~24) → [가지 index, 가지 안 index]
@@ -119,6 +128,9 @@ export default function TreeView({ leaves = [], branchIndex, onLeafClick, onBran
   );
 }
 
+// 시안처럼 날짜는 잎 끝(가지에서 먼 쪽) 방향으로 잎 바로 바깥에 써요
+const LABEL_DISTANCE = 40;
+
 function DateLabels({ branchIndex, leafByPosition }) {
   const slots = BRANCH_SLOTS[branchIndex];
   const centers = slots.map(slotCenter);
@@ -131,20 +143,18 @@ function DateLabels({ branchIndex, leafByPosition }) {
         const leaf = leafByPosition[BRANCH_START[branchIndex] + i];
         if (!leaf) return null;
         const [cx, cy] = centers[i];
-        const dx = cx - mx;
-        const dy = cy - my;
-        const len = Math.hypot(dx, dy) || 1;
+        let [ux, uy] = slotAxis(slot);
+        // 긴 축 중 가지 묶음 바깥을 향하는 쪽으로
+        if ((cx - mx) * ux + (cy - my) * uy < 0) [ux, uy] = [-ux, -uy];
         return (
           <text
             key={i}
-            x={cx + (dx / len) * 40}
-            y={cy + (dy / len) * 40 + 4}
+            x={cx + ux * LABEL_DISTANCE}
+            y={cy + uy * LABEL_DISTANCE}
             textAnchor="middle"
-            fontSize={10}
+            dominantBaseline="central"
+            fontSize={6.3}
             fill="#5C5B58"
-            stroke="white"
-            strokeWidth={3}
-            paintOrder="stroke"
           >
             {formatShortDate(leaf.studiedAt)}
           </text>
