@@ -30,12 +30,13 @@ export default function QuizResultPage() {
   if (state.quizSetType === QUIZ_SET_TYPE.REVIEW) {
     return <ReviewResult result={state.result} context={state.context ?? {}} />;
   }
-  return <GradeResult result={state.result} context={state.context ?? {}} />;
+  return <GradeResult result={state.result} context={state.context ?? {}} questions={state.questions ?? []} />;
 }
 
-function GradeResult({ result, context }) {
+function GradeResult({ result, context, questions }) {
   const navigate = useNavigate();
   const [essayOpen, setEssayOpen] = useState(false);
+  const [openId, setOpenId] = useState(null); // 정답을 펼쳐 본 객관식 문제
   const [phase, setPhase] = useState('result'); // result | finding | fail
   const [error, setError] = useState(null);
 
@@ -113,15 +114,29 @@ function GradeResult({ result, context }) {
                 )}
               </li>
             ) : (
-              <li key={r.questionId} className="flex min-h-[57px] items-center justify-between gap-2 rounded-xl bg-surface p-4">
-                <span className="flex min-w-0 flex-1 items-center gap-4">
-                  {r.isCorrect ? <CheckCircleIcon /> : <CloseCircleIcon />}
-                  <span className="sr-only">{r.isCorrect ? '정답' : '오답'}</span>
-                  <span className="min-w-0 flex-1 text-lg leading-[1.4] font-medium text-ink-3">
-                    {r.number}. {r.topic}
+              <li key={r.questionId} className="flex flex-col gap-3">
+                {/* 누르면 문제·보기와 정답·내 답·해설을 펼쳐 봐요 */}
+                <button
+                  type="button"
+                  aria-expanded={openId === r.questionId}
+                  onClick={() => setOpenId((id) => (id === r.questionId ? null : r.questionId))}
+                  className="flex min-h-[57px] w-full items-center justify-between gap-2 rounded-xl bg-surface p-4 text-left"
+                >
+                  <span className="flex min-w-0 flex-1 items-center gap-4">
+                    {r.isCorrect ? <CheckCircleIcon /> : <CloseCircleIcon />}
+                    <span className="sr-only">{r.isCorrect ? '정답' : '오답'}</span>
+                    <span className="min-w-0 flex-1 text-lg leading-[1.4] font-medium text-ink-3">
+                      {r.number}. {r.topic}
+                    </span>
                   </span>
-                </span>
-                <span className="shrink-0 text-sm whitespace-nowrap text-ink-3">{DIFFICULTY_LABEL[r.difficulty]}</span>
+                  <span className="flex shrink-0 items-center gap-1 text-sm whitespace-nowrap text-ink-3">
+                    {DIFFICULTY_LABEL[r.difficulty]}
+                    <ChevronDownIcon className={`size-5 shrink-0 transition-transform ${openId === r.questionId ? 'rotate-180' : ''}`} />
+                  </span>
+                </button>
+                {openId === r.questionId && (
+                  <AnswerDetail result={r} question={questions.find((q) => q.questionId === r.questionId)} />
+                )}
               </li>
             ),
           )}
@@ -132,5 +147,46 @@ function GradeResult({ result, context }) {
         <Button onClick={goToBranch}>잎사귀 확인하기</Button>
       </div>
     </section>
+  );
+}
+
+// 객관식 한 문제의 보기 · 정답 · 내 답 · 해설 (S2 결과의 answerIndex · selectedIndex · explanation)
+function AnswerDetail({ result, question }) {
+  const options = question?.options ?? [];
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-info bg-surface p-4 text-sm leading-[1.4] text-ink-2">
+      {question?.content && <p className="font-medium whitespace-pre-line text-ink">{question.content}</p>}
+      {options.length > 0 ? (
+        <ul className="flex flex-col gap-1.5">
+          {options.map((option, i) => {
+            const isAnswer = i === result.answerIndex;
+            const isMine = i === result.selectedIndex;
+            return (
+              <li
+                key={i}
+                className={`rounded-lg border px-3 py-2 ${
+                  isAnswer
+                    ? 'border-primary bg-primary-soft font-semibold text-ink'
+                    : isMine
+                      ? 'border-transparent bg-danger/10 text-danger'
+                      : 'border-transparent text-ink-3'
+                }`}
+              >
+                {i + 1}. {option}
+                {isAnswer && <span className="text-primary"> (정답)</span>}
+                {isMine && !isAnswer && ' (내 답)'}
+                {isMine && isAnswer && <span className="text-primary"> · 내 답</span>}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p>
+          정답: {result.answerIndex + 1}번
+          {result.selectedIndex != null && !result.isCorrect && ` · 내 답: ${result.selectedIndex + 1}번`}
+        </p>
+      )}
+      {result.explanation && <p className="text-ink-3">해설: {result.explanation}</p>}
+    </div>
   );
 }
