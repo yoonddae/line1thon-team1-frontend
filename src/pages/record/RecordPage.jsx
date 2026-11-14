@@ -134,12 +134,18 @@ function QuestionReview({ question, essayFeedback }) {
             return (
               <li
                 key={i}
-                className={`rounded-lg px-3 py-2 ${
-                  isAnswer ? 'bg-primary-soft text-ink' : isMine ? 'bg-danger/10 text-danger' : 'text-ink-3'
+                className={`rounded-lg border px-3 py-2 ${
+                  isAnswer
+                    ? 'border-primary bg-primary-soft font-semibold text-ink'
+                    : isMine
+                      ? 'border-transparent bg-danger/10 text-danger'
+                      : 'border-transparent text-ink-3'
                 }`}
               >
                 {i + 1}. {option}
-                {isMine && ' (내 답)'}
+                {isAnswer && <span className="text-primary"> (정답)</span>}
+                {isMine && !isAnswer && ' (내 답)'}
+                {isMine && isAnswer && <span className="text-primary"> · 내 답</span>}
               </li>
             );
           })}

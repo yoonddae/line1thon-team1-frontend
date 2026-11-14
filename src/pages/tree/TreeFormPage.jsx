@@ -15,7 +15,7 @@ import { validateSubjectName } from '@/utils/validation';
 /**
  * 새 나무 심기 (T2, 시안 #21) / 나무 수정 (T4, 시안 #16). URL 에 treeId 가 있으면 수정 화면이에요.
  * - 심기: 과목 이름 · 공부 수준 · 나무 모양 · 배경 색상 + 무료 나무 사용 현황(T1)
- * - 수정: 과목 이름 · 공부 수준만 (나무 모양은 바꿀 수 없고, 배경 색상은 시안에 없어요)
+ * - 수정: 과목 이름 · 공부 수준 · 배경 색상 (나무 모양은 바꿀 수 없어요)
  */
 export default function TreeFormPage() {
   const { treeId } = useParams();
@@ -36,6 +36,7 @@ export default function TreeFormPage() {
       ? getTree(treeId).then((tree) => {
           setSubjectName(tree.subjectName);
           setStudyLevel(tree.studyLevel);
+          if (tree.backgroundColor) setBackgroundColor(tree.backgroundColor);
         })
       : getTrees().then(setForest);
     request.catch((err) => setError(getErrorMessage(err))).finally(() => setLoading(false));
@@ -60,7 +61,7 @@ export default function TreeFormPage() {
     setError('');
     try {
       if (isEdit) {
-        await updateTree(treeId, { subjectName: subjectName.trim(), studyLevel });
+        await updateTree(treeId, { subjectName: subjectName.trim(), studyLevel, backgroundColor });
         navigate(ROUTES.TREE(treeId), { replace: true });
       } else {
         const created = await createTree({ subjectName: subjectName.trim(), studyLevel, treeShape, backgroundColor });
@@ -137,51 +138,51 @@ export default function TreeFormPage() {
                 })}
               </div>
             </Field>
-
-            <Field label="배경 색상">
-              <div className="flex justify-between">
-                {BACKGROUNDS.map((bg) => {
-                  const selected = backgroundColor === bg.value;
-                  return (
-                    <button
-                      key={bg.value}
-                      type="button"
-                      aria-label={`${bg.label} 배경`}
-                      aria-pressed={selected}
-                      onClick={() => setBackgroundColor(bg.value)}
-                      className="relative size-16 rounded-xl"
-                      style={{ background: bg.from }}
-                    >
-                      {selected && (
-                        <span className="absolute top-1 right-1 flex size-[22px] items-center justify-center rounded-full bg-primary">
-                          <svg viewBox="0 0 12 10" className="h-2.5 w-3" aria-hidden>
-                            <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" fill="none" />
-                          </svg>
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </Field>
-
-            {forest && (
-              <div className="rounded-2xl bg-info p-4">
-                <p className="text-base font-semibold text-ink-2">
-                  무료 나무 {forest.treeCount} / {forest.freeTreeLimit} 사용 중
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-ink-3">
-                  {isFull ? (
-                    '무료 나무를 모두 심었어요.'
-                  ) : (
-                    <>무료 나무를 {forest.freeTreeLimit - forest.treeCount}그루 더 심을 수 있어요.</>
-                  )}
-                  <br />
-                  {forest.freeTreeLimit + 1}번째 나무부터는 유료로 심을 수 있어요.
-                </p>
-              </div>
-            )}
           </>
+        )}
+
+        <Field label="배경 색상">
+          <div className="flex justify-between">
+            {BACKGROUNDS.map((bg) => {
+              const selected = backgroundColor === bg.value;
+              return (
+                <button
+                  key={bg.value}
+                  type="button"
+                  aria-label={`${bg.label} 배경`}
+                  aria-pressed={selected}
+                  onClick={() => setBackgroundColor(bg.value)}
+                  className="relative size-16 rounded-xl"
+                  style={{ background: bg.from }}
+                >
+                  {selected && (
+                    <span className="absolute top-1 right-1 flex size-[22px] items-center justify-center rounded-full bg-primary">
+                      <svg viewBox="0 0 12 10" className="h-2.5 w-3" aria-hidden>
+                        <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" fill="none" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+
+        {!isEdit && forest && (
+          <div className="rounded-2xl bg-info p-4">
+            <p className="text-base font-semibold text-ink-2">
+              무료 나무 {forest.treeCount} / {forest.freeTreeLimit} 사용 중
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-3">
+              {isFull ? (
+                '무료 나무를 모두 심었어요.'
+              ) : (
+                <>무료 나무를 {forest.freeTreeLimit - forest.treeCount}그루 더 심을 수 있어요.</>
+              )}
+              <br />
+              {forest.freeTreeLimit + 1}번째 나무부터는 유료로 심을 수 있어요.
+            </p>
+          </div>
         )}
 
         {isEdit && (
