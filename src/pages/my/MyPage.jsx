@@ -90,7 +90,8 @@ export default function MyPage() {
           }}
           error={error}
         />
-        <Button onClick={handleSave} disabled={!changed || saving}>
+        {/* 눌러도 될 때만 진한 초록, 못 누를 때(그대로이거나 저장 중·저장 완료)는 회색 */}
+        <Button variant={changed && !saving ? 'primary' : 'secondary'} onClick={handleSave} disabled={!changed || saving}>
           {saved ? '저장했어요' : '변경사항 저장'}
         </Button>
 

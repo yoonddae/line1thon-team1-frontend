@@ -161,15 +161,17 @@ export default function MaterialInputPage() {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            maxLength={MAX_CONTENT}
+            maxLength={hasPhoto ? MAX_MEMO : MAX_CONTENT}
             placeholder="메모를 입력하세요."
             className={`h-[88px] resize-none rounded-xl border bg-surface p-4 text-sm leading-[1.4] text-ink-2 outline-none placeholder:text-ink-4 focus:border-primary ${
               text ? 'border-info' : 'border-line'
             }`}
           />
-          {memoTooLong && (
-            <span className="text-xs text-danger">
-              사진이 있을 땐 메모를 {MAX_MEMO}자까지 쓸 수 있어요 ({length}/{MAX_MEMO})
+          {/* 사진이 있으면 메모는 200자까지 (서버가 200자를 넘으면 INVALID_REQUEST) */}
+          {hasPhoto && (
+            <span className={`-mt-1 text-right text-xs ${memoTooLong ? 'text-danger' : 'text-ink-4'}`}>
+              {memoTooLong && '사진이 있을 땐 메모를 200자까지 쓸 수 있어요 · '}
+              {length}/{MAX_MEMO}
             </span>
           )}
         </label>
