@@ -81,7 +81,8 @@ export default function QuizPage() {
       const result = await submitAnswers(quizSet.quizSetId, payload);
       navigate(ROUTES.QUIZ_RESULT(quizSet.quizSetId), {
         replace: true,
-        state: { result, quizSetType: quizSet.quizSetType, context },
+        // 채점 결과에서 문제·보기와 정답을 같이 보여주려고 문제도 넘겨요 (S2 결과엔 보기가 없어요)
+        state: { result, quizSetType: quizSet.quizSetType, context, questions: quizSet.questions },
       });
     } catch (err) {
       const kind = aiErrorKind(err);
